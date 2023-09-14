@@ -1,6 +1,6 @@
 # **Kotlin LibBase**
 
-#### **Kotlin Base 库封装 后续会增加各种框架的基础封装处理**
+#### **Kotlin Base 库封装**
 
 - [ ] **MVC框架封装**
 
