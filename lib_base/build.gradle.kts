@@ -19,6 +19,9 @@ android {
     // 配置构建功能相关的选项
     buildFeatures {
 
+        // 开启 构建配置
+        buildConfig = true
+
         // 开启 ViewBinding
         viewBinding = true
 

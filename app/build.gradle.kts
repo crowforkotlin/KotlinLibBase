@@ -22,6 +22,9 @@ android {
     // 配置构建功能相关的选项
     buildFeatures(Action {
 
+        // 开启 构建配置
+        buildConfig = true
+
         // 开启 ViewBinding
         viewBinding = true
     })
@@ -76,7 +79,7 @@ android {
             // 添加ProGuard配置，优化发行版性能
             proguardFiles(getDefaultProguardFile(AppConfigs.proguard_android_optimize_txt), AppConfigs.proguard_rules_pro)
 
-            setProperty("archivesBaseName", "CopyMangaX")
+            setProperty("archivesBaseName", "KotlinLibBase")
         }
 
         // 调试版本
