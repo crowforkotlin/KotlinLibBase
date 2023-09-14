@@ -3,7 +3,7 @@ plugins {
     // 使用插件库
     id(Plugins.android_library)
 
-    // Ksp
+    // KSP
     id(Plugins.google_devtools_ksp) version Versions.ksp_version
 
     // 使用 Kotlin语言开发Android 插件
@@ -90,8 +90,6 @@ android {
     }
 }
 
-kotlin { jvmToolchain(11) }
-
 dependencies {
 
     // 引入App下libs文件下的所有Jar包
@@ -151,7 +149,7 @@ dependencies {
     api(Dependencies.photoview)
     api(Dependencies.glide)
     api(Dependencies.glide_integration) { exclude(group = "glide-parent") }
-    ksp(Dependencies.glide_compiler)
+    ksp(Dependencies.glide_ksp)
     api(Dependencies.zguop_banner)
     api(Dependencies.tencent_bugly)
     api(Dependencies.loading_button)
