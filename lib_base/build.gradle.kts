@@ -85,7 +85,11 @@ android {
         // JNI 库文件路径
         jniLibs.srcDirs(AppConfigs.source_libs, AppConfigs.source_jniLibs)
     }
+
+    // Compose 配置
     composeOptions {
+
+        // 设置 Kotlin Compose 编译器扩展的版本 （Important）
         kotlinCompilerExtensionVersion = compose.versions.compiler.get()
     }
 }
@@ -165,5 +169,5 @@ dependencies {
     api(compose.material.core)
     api(compose.accompanist.themeadapter)
     api(compose.ui.tooling)
-    api(compose.material.icons)
+    api(compose.foundation)
 }

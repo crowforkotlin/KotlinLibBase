@@ -25,6 +25,9 @@ android {
 
         // 开启 ViewBinding
         viewBinding = true
+
+        // compose
+        compose = true
     })
 
 
@@ -148,7 +151,12 @@ android {
         }
     }
 
+    // Compose 配置
+    composeOptions {
 
+        // 设置 Kotlin Compose 编译器扩展的版本 （Important）
+        kotlinCompilerExtensionVersion = compose.versions.compiler.get()
+    }
 }
 
 

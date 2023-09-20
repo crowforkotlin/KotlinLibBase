@@ -45,20 +45,7 @@ fun toLongLittleEndian(byteArray: ByteArray, startIndex: Int = 0): Int {
  *
  * ● 2023-09-13 14:53:19 周三 下午
  */
-fun toLongBigEndian(byteArray: ByteArray , startIndex: Int = 0): Long {
-    return (((byteArray[startIndex].toInt() and 0xFF) shl 56).toLong() or
-            ((byteArray[startIndex + 1].toInt() and 0xFF) shl 48).toLong() or
-            ((byteArray[startIndex + 2].toInt() and 0xFF) shl 40).toLong() or
-            ((byteArray[startIndex + 3].toInt() and 0xFF) shl 32).toLong() or
-            ((byteArray[startIndex + 4].toInt() and 0xFF) shl 24).toLong() or
-            ((byteArray[startIndex + 5].toInt() and 0xFF) shl 16).toLong() or
-            ((byteArray[startIndex + 6].toInt() and 0xFF) shl 8).toLong() or
-            (byteArray[startIndex + 7].toInt() and 0xFF).toLong())
-}
-
-fun main() {
-    println(toLongBigEndian(byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8)))
-}
+fun toLongBigEndian(byteArray: ByteArray , startIndex: Int = 0) = ByteBuffer.wrap(byteArray).getLong(startIndex)
 
 /**
  * ● 大端序Int 构建新的ByteArray
