@@ -27,6 +27,13 @@ fun toInt32LittleEndian(bytes: Bytes, startIndex: Int = 0): Int {
 }
 
 /**
+ * ● Int8 转 Bytes
+ *
+ * ● 2023-09-23 15:13:24 周六 下午
+ */
+fun fromInt8(int32: Int) = byteArrayOf((int32 and 0xFF).toByte())
+
+/**
  * ● Int16转 Bytes -- 大端序
  *
  * ● 2023-09-23 15:06:59 周六 下午
