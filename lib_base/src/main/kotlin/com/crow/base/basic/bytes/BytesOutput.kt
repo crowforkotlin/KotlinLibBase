@@ -7,7 +7,7 @@ import com.crow.base.ext.fromInt32
 import com.crow.base.ext.fromInt8
 import java.io.ByteArrayOutputStream
 
-class BytesWriter : ByteArrayOutputStream() {
+class BytesOutput : ByteArrayOutputStream() {
 
     fun writeInt8(byte: Byte) {
         this.write(byte.toInt())
