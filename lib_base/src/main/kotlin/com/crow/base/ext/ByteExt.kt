@@ -1,57 +1,75 @@
 package com.crow.base.ext
 
-import java.nio.ByteBuffer
-
-fun getInt(byteArray: ByteArray, position: Int) = byteArray[position].toInt()
+typealias Bytes = ByteArray
 
 /**
- * ● 直接在原数组上进行查询处理
+ * ● 大端序Bytes 转 Int32
  *
  * ● 2023-09-13 14:53:19 周三 下午
  */
-fun toIntLittleEndian(byteArray: ByteArray, startIndex: Int = 0): Int {
-    return (byteArray[startIndex].toInt() and 0xFF) or
-            ((byteArray[startIndex + 1].toInt() and 0xFF) shl 8) or
-            ((byteArray[startIndex + 2].toInt() and 0xFF) shl 16) or
-            ((byteArray[startIndex + 3].toInt() and 0xFF) shl 24)
+fun toInt32(bytes: Bytes, startIndex: Int = 0, isLittleEndian: Boolean = false): Int {
+    return((bytes[startIndex].toInt() and 0xFF) shl 24) or
+        ((bytes[startIndex + 1].toInt() and 0xFF) shl 16) or
+        ((bytes[startIndex + 2].toInt() and 0xFF) shl 8) or
+        (bytes[startIndex + 3].toInt() and 0xFF)
 }
 
 /**
- * ● 直接在原数组上进行查询处理
+ * ● 小端序Bytes 转 Int32
  *
- * ● 2023-09-13 14:53:19 周三 下午
+ * ● 2023-09-23 15:07:14 周六 下午
  */
-fun toIntBigEndian(byteArray: ByteArray, startIndex: Int = 0): Int {
-    return ((byteArray[startIndex].toInt() and 0xFF) shl 24) or
-            ((byteArray[startIndex + 1].toInt() and 0xFF) shl 16) or
-            ((byteArray[startIndex + 2].toInt() and 0xFF) shl 8) or
-            (byteArray[startIndex + 3].toInt() and 0xFF)
+fun toInt32LittleEndian(bytes: Bytes, startIndex: Int = 0): Int {
+    return (bytes[startIndex].toInt() and 0xFF) or
+            ((bytes[startIndex + 1].toInt() and 0xFF) shl 8) or
+            ((bytes[startIndex + 2].toInt() and 0xFF) shl 16) or
+            ((bytes[startIndex + 3].toInt() and 0xFF) shl 24)
 }
 
 /**
- * ● 直接在原数组上进行查询处理
+ * ● Int16转 Bytes -- 大端序
  *
- * ● 2023-09-13 14:53:19 周三 下午
+ * ● 2023-09-23 15:06:59 周六 下午
  */
-fun toLongLittleEndian(byteArray: ByteArray, startIndex: Int = 0): Int {
-    return (byteArray[startIndex].toInt() and 0xFF) or
-            ((byteArray[startIndex + 1].toInt() and 0xFF) shl 8) or
-            ((byteArray[startIndex + 2].toInt() and 0xFF) shl 16) or
-            ((byteArray[startIndex + 3].toInt() and 0xFF) shl 24)
-}
+fun fromInt16(int32: Int) = byteArrayOf(((int32 shr 8) and 0xFF).toByte(), (int32 and 0xFF).toByte())
 
 /**
- * ● 直接在原数组上进行查询处理
+ * ● Int16 转 Bytes -- 小端序
  *
- * ● 2023-09-13 14:53:19 周三 下午
+ * ● 2023-09-23 15:06:36 周六 下午
  */
-fun toLongBigEndian(byteArray: ByteArray , startIndex: Int = 0) = ByteBuffer.wrap(byteArray).getLong(startIndex)
+fun fromInt16LittleEndian(int32: Int) = byteArrayOf((int32 and 0xFF).toByte(), ((int32 shr 8) and 0xFF).toByte())
+
+/**
+ * ● Int32 转 Bytes -- 大端序
+ *
+ * ● 2023-09-23 15:06:17 周六 下午
+ */
+fun fromInt32(int32: Int) = byteArrayOf(
+    ((int32 shr 24) and 0xFF).toByte(),
+    ((int32 shr 16) and 0xFF).toByte(),
+    ((int32 shr 8) and 0xFF).toByte(),
+    (int32 and 0xFF).toByte()
+)
+
+/**
+ * ● Int32 转 Bytes -- 小端序
+ *
+ * ● 2023-09-23 15:05:49 周六 下午
+ */
+fun fromInt32LitterEndian(int32: Int) = byteArrayOf(
+    (int32 and 0xFF).toByte(),
+    ((int32 shr 8) and 0xFF).toByte(),
+    ((int32 shr 16) and 0xFF).toByte(),
+    ((int32 shr 24) and 0xFF).toByte()
+)
 
 /**
  * ● 大端序Int 构建新的ByteArray
  *
  * ● 2023-09-13 16:52:36 周三 下午
  */
+@Deprecated("It may be removed in the future.")
 fun toByteArrayBigEndian(value: Any): ByteArray {
     return when (value) {
         is Int -> {
@@ -119,6 +137,7 @@ fun toByteArrayBigEndian(value: Any): ByteArray {
  *
  * ● 2023-09-13 16:52:36 周三 下午
  */
+@Deprecated("It may be removed in the future.")
 fun toByteArrayLittleEndian(value: Any): ByteArray {
     return when (value) {
         is Int -> {
