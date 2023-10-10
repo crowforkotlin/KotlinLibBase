@@ -1,6 +1,14 @@
 package com.crow.base.ext
 
+import com.crow.base.basic.bytes.BytesOutput
+import kotlin.math.ceil
+import kotlin.math.log10
+import kotlin.system.measureNanoTime
+import kotlin.system.measureTimeMillis
+
 typealias Bytes = ByteArray
+
+const val baseHex30 = 0x30
 
 /**
  * ● 大端序Bytes 转 Int32
@@ -135,7 +143,7 @@ fun toByteArrayBigEndian(value: Any): ByteArray {
         }
         is Byte -> byteArrayOf(value)
         is UByte -> byteArrayOf(value.toByte())
-        else -> throw IllegalStateException("type must be Int or UInt!")
+        else -> error("type must be Int or UInt!")
     }
 }
 
@@ -203,6 +211,233 @@ fun toByteArrayLittleEndian(value: Any): ByteArray {
         }
         is Byte -> byteArrayOf(value)
         is UByte -> byteArrayOf(value.toByte())
-        else -> throw IllegalStateException("type must be Int or UInt!")
+        else -> error("type must be Int or UInt!")
+    }
+}
+
+/**
+ * ● 得到ASCII 16进制对应的 十进制
+ *
+ * ● 2023-10-10 09:53:44 周二 上午
+ */
+fun toAsciiInt(byteArray: Bytes) : Int {
+    var result = 0
+
+    for (byte in byteArray) {
+        result = result * 10 + (byte - baseHex30)
+    }
+    return result
+}
+
+
+/**
+ * ● 从Int中取每一位转成Ascii字符16进制后存入ByteArray
+ *
+ * ● 2023-10-10 11:48:47 周二 上午
+ */
+fun fromAsciiInt(value: Int): ByteArray {
+    return when(value) {
+        in 0..< 10 -> {
+            byteArrayOf(
+                (value + baseHex30).toByte()
+            )
+        }
+        in 10..<100 -> {
+            byteArrayOf(
+                (toTen(value) + baseHex30).toByte(),
+                (toUnit(value) + baseHex30).toByte()
+            )
+        }
+        in 100..<1000 -> {
+            byteArrayOf(
+                (toHundred(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toUnit(value) + baseHex30).toByte()
+            )
+        }
+        in 1000..<1_0000 -> {
+            byteArrayOf(
+                (toThousand(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toUnit(value) + baseHex30).toByte()
+            )
+        }
+        in 1_0000..<10_0000 -> {
+            byteArrayOf(
+                (toTenThousand(value) + baseHex30).toByte(),
+                (toThousand(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toUnit(value) + baseHex30).toByte()
+            )
+        }
+        in 10_0000..<100_0000 -> {
+            byteArrayOf(
+                (toHundredThousand(value) + baseHex30).toByte(),
+                (toTenThousand(value) + baseHex30).toByte(),
+                (toThousand(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toUnit(value) + baseHex30).toByte()
+            )
+        }
+        in 100_0000 ..< 1000_0000 -> {
+            byteArrayOf(
+                (toMillion(value) + baseHex30).toByte(),
+                (toHundredThousand(value) + baseHex30).toByte(),
+                (toTenThousand(value) + baseHex30).toByte(),
+                (toThousand(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toUnit(value) + baseHex30).toByte()
+            )
+        }
+        in 1000_0000 ..< 1_0000_0000 -> {
+            byteArrayOf(
+                (toTenMillion(value) + baseHex30).toByte(),
+                (toMillion(value) + baseHex30).toByte(),
+                (toHundredThousand(value) + baseHex30).toByte(),
+                (toTenThousand(value) + baseHex30).toByte(),
+                (toThousand(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toUnit(value) + baseHex30).toByte()
+            )
+        }
+        in 1_0000_0000 ..< 10_0000_0000 -> {
+            byteArrayOf(
+                (toTrillion(value) + baseHex30).toByte(),
+                (toTenMillion(value) + baseHex30).toByte(),
+                (toMillion(value) + baseHex30).toByte(),
+                (toHundredThousand(value) + baseHex30).toByte(),
+                (toTenThousand(value) + baseHex30).toByte(),
+                (toThousand(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toUnit(value) + baseHex30).toByte()
+            )
+        }
+        in 10_0000_0000 .. Int.MAX_VALUE -> {
+            byteArrayOf(
+                (toTenTrillion(value) + baseHex30).toByte(),
+                (toTrillion(value) + baseHex30).toByte(),
+                (toTenMillion(value) + baseHex30).toByte(),
+                (toMillion(value) + baseHex30).toByte(),
+                (toHundredThousand(value) + baseHex30).toByte(),
+                (toTenThousand(value) + baseHex30).toByte(),
+                (toThousand(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toUnit(value) + baseHex30).toByte()
+            )
+        }
+        else -> error("")
+    }
+}
+
+/**
+ * ● 从Int中取每一位转成Ascii字符16进制后存入ByteArray 小端序
+ *
+ * ● 2023-10-10 11:49:38 周二 上午
+ */
+fun fromAsciiIntLittleEndian(value: Int): ByteArray {
+    return when(value) {
+        in 0..< 10 -> {
+            byteArrayOf(
+                (value + baseHex30).toByte()
+            )
+        }
+        in 10..<100 -> {
+            byteArrayOf(
+                (toUnit(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte()
+            )
+        }
+        in 100..<1000 -> {
+            byteArrayOf(
+                (toUnit(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte()
+            )
+        }
+        in 1000..<1_0000 -> {
+            byteArrayOf(
+                (toUnit(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toThousand(value) + baseHex30).toByte()
+            )
+        }
+        in 1_0000..<10_0000 -> {
+            byteArrayOf(
+                (toUnit(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toThousand(value) + baseHex30).toByte(),
+                (toTenThousand(value) + baseHex30).toByte()
+            )
+        }
+        in 10_0000..<100_0000 -> {
+            byteArrayOf(
+                (toUnit(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toThousand(value) + baseHex30).toByte(),
+                (toTenThousand(value) + baseHex30).toByte(),
+                (toHundredThousand(value) + baseHex30).toByte()
+            )
+        }
+        in 100_0000 ..< 1000_0000 -> {
+            byteArrayOf(
+                (toUnit(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toThousand(value) + baseHex30).toByte(),
+                (toTenThousand(value) + baseHex30).toByte(),
+                (toHundredThousand(value) + baseHex30).toByte(),
+                (toMillion(value) + baseHex30).toByte()
+            )
+        }
+        in 1000_0000 ..< 1_0000_0000 -> {
+            byteArrayOf(
+                (toUnit(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toThousand(value) + baseHex30).toByte(),
+                (toTenThousand(value) + baseHex30).toByte(),
+                (toHundredThousand(value) + baseHex30).toByte(),
+                (toMillion(value) + baseHex30).toByte(),
+                (toTenMillion(value) + baseHex30).toByte()
+            )
+        }
+        in 1_0000_0000 ..< 10_0000_0000 -> {
+            byteArrayOf(
+                (toUnit(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toThousand(value) + baseHex30).toByte(),
+                (toTenThousand(value) + baseHex30).toByte(),
+                (toHundredThousand(value) + baseHex30).toByte(),
+                (toMillion(value) + baseHex30).toByte(),
+                (toTenMillion(value) + baseHex30).toByte(),
+                (toTrillion(value) + baseHex30).toByte()
+            )
+        }
+        in 10_0000_0000 .. Int.MAX_VALUE -> {
+            byteArrayOf(
+                (toUnit(value) + baseHex30).toByte(),
+                (toTen(value) + baseHex30).toByte(),
+                (toHundred(value) + baseHex30).toByte(),
+                (toThousand(value) + baseHex30).toByte(),
+                (toTenThousand(value) + baseHex30).toByte(),
+                (toHundredThousand(value) + baseHex30).toByte(),
+                (toMillion(value) + baseHex30).toByte(),
+                (toTenMillion(value) + baseHex30).toByte(),
+                (toTrillion(value) + baseHex30).toByte(),
+                (toTenTrillion(value) + baseHex30).toByte()
+            )
+        }
+        else -> error("")
     }
 }
