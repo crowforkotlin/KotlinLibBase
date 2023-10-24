@@ -10,6 +10,14 @@ const val baseASCII_0 = '0'.code
 
 const val baseASCII_A = 'A'.code
 
+const val baseTenF = 0xF
+
+const val baseTen4 = 4
+
+fun toReverseInt8(value: Int): Int {
+    return value and baseTenF shl baseTen4 or (value shr baseTen4 and baseTenF)
+}
+
 
 /**
  * ● 大端序Bytes 转 Int32
