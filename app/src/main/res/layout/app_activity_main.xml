@@ -7,6 +7,7 @@
     android:layout_height="match_parent"
     tools:context=".ui.MainActivity">
 
+<!--
     <com.crow.lib_base.ui.masklayout.MaskLayout
         android:id="@+id/marklayout"
         android:layout_width="match_parent"
@@ -17,14 +18,17 @@
 
     <Button
         android:id="@+id/button"
+        android:layout_gravity="bottom|end"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 
     <Button
         android:id="@+id/button2"
-        android:layout_marginStart="120dp"
+        android:layout_marginEnd="120dp"
+        android:layout_gravity="bottom|end"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
+-->
 
 
 </FrameLayout>
