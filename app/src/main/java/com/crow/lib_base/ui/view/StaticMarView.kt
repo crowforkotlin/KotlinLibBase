@@ -4,8 +4,6 @@
 
 package com.crow.lib_base.ui.view
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -13,8 +11,6 @@ import android.graphics.Paint
 import android.graphics.Paint.FontMetrics
 import android.graphics.Typeface
 import android.view.View
-import android.view.ViewPropertyAnimator
-import android.view.animation.LinearInterpolator
 import androidx.annotation.FloatRange
 import androidx.annotation.IntRange
 import com.crow.base.ext.log
@@ -38,13 +34,15 @@ class StaticMarView(context: Context) : View(context) {
          * ● 2023-10-31 14:09:00 周二 下午
          * @author crowforkotlin
          */
-        private const val DEBUG = true
+        private const val DEBUG = false
 
         private const val FLAG_TEXT = 0x00
         private const val FLAG_TEXT_SIZE = 0x01
-        private const val FLAG_GRAVITY = 0x02
         private const val FLAG_REFRESH = 0x03
         private const val FLAG_SCROLL_SPEED = 0x04
+
+        const val ANIMATION_DEFAULT = 2000
+        const val ANIMATION_RIGHT_MOVE = 2001
 
         const val GRAVITY_TOP_START = 1000
         const val GRAVITY_TOP_CENTER = 1001
@@ -101,21 +99,13 @@ class StaticMarView(context: Context) : View(context) {
     private var mTextY : Float = 0f
 
     /**
-     * ● 当前正在执行的视图动画，没有动画则为空
-     *
-     * ● 2023-10-31 14:08:33 周二 下午
-     * @author crowforkotlin
-     */
-    private var mViewAnimator : ViewPropertyAnimator? = null
-
-    /**
      * ● 文本列表 -- 存储屏幕上可显示的字符串集合 实现原理是 动态计算字符串宽度和 视图View做判断
      * First : 文本，Second：测量宽度
      *
      * ● 2023-10-31 14:04:26 周二 下午
      * @author crowforkotlin
      */
-    private var mList : MutableList<Pair<String, Float>> = mutableListOf()
+    var mList : MutableList<Pair<String, Float>>?  = null
 
     /**
      * ● 文本列表位置 -- 设置后会触发重新绘制
@@ -123,15 +113,7 @@ class StaticMarView(context: Context) : View(context) {
      * ● 2023-10-31 14:06:16 周二 下午
      * @author crowforkotlin
      */
-    private var mListPosition : Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(FLAG_REFRESH, oldPosition, newPosition) }
-
-    /**
-     * ● 动画持续时间
-     *
-     * ● 2023-10-31 13:59:35 周二 下午
-     * @author crowforkotlin
-     */
-    private var mAnimationDuration: Long by Delegates.observable(1000L) { _, oldDuration, newDuration -> onVariableChanged(FLAG_SCROLL_SPEED, oldDuration, newDuration) }
+    var mListPosition : Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(FLAG_REFRESH, oldPosition, newPosition, skipSameCheck = true) }
 
     /**
      * ● 旋转角度 -- 设置后会触发重新绘制
@@ -168,40 +150,15 @@ class StaticMarView(context: Context) : View(context) {
      */
     var mNewLineEnable: Boolean = false
 
-    private var mAnimation = 0f
-
     /**
-     * ● 滚动速度 --- 设置滚动速度实际上是对动画持续时间进行设置 重写SET函数，实现滚动速度设置 对动画时间进行相对的设置，设置后会触发重新绘制
-     *
-     * ● 2023-10-31 13:59:53 周二 下午
-     * @author crowforkotlin
-     */
-    @IntRange(from = 1, to = 15) var mScrollSpeed: Int = 1
-        set(value) {
-            field = value
-
-            // 根据 mScrollSpeed 动态调整 mAnimationDuration
-            mAnimationDuration =  2000L + (400 * (15 - value))
-        }
-
-    /**
-     * ● 停留时间
+     * ● 停留时间 静止时生效
      *
      * ● 2023-10-31 13:59:29 周二 下午
      * @author crowforkotlin
      */
-    @IntRange(from = 1, to = 255) var mResidenceTime: Int = 1
-
-    /**
-     * ● 文本内容 -- 设置后会触发重新绘制
-     *
-     * ● 2023-10-31 14:03:56 周二 下午
-     * @author crowforkotlin
-     */
-    var mText: String by Delegates.observable("") { _, oldText, newText -> onVariableChanged(FLAG_TEXT, oldText, newText) }
+    @IntRange(from = 1, to = 255) var mResidenceTime: Int = 5
 
     init {
-        mScrollSpeed = 15
         mTextPaint.color = Color.WHITE
         mTextPaint.textSize = mTextSize
         mTextPaint.typeface = Typeface.MONOSPACE
@@ -216,8 +173,13 @@ class StaticMarView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
+        // 文本为空则退出
+        if (mList?.isEmpty() == true) return
+
         // 获取文本
-        val text = mList[mListPosition]
+        val text = (mList ?: return)[mListPosition]
+
+        mList = null
 
         // 设置X和Y的坐标 ，Paint绘制的文本在descent位置 进行相对应的计算即可
         when(mGravity) {
@@ -293,6 +255,7 @@ class StaticMarView(context: Context) : View(context) {
         }
     }
 
+    
     /**
      * ● 计算 baseline 的相对文字中心的偏移量
      *
@@ -348,77 +311,33 @@ class StaticMarView(context: Context) : View(context) {
      * ● 2023-10-31 14:14:18 周二 下午
      * @author crowforkotlin
      */
-    private fun<T : Any> onVariableChanged(flag: Int, oldValue: T, newValue: T) {
+    private fun<T : Any> onVariableChanged(flag: Int, oldValue: T?, newValue: T?, skipSameCheck: Boolean = false) {
+        if (oldValue == newValue && !skipSameCheck) return
         when(flag) {
-            FLAG_REFRESH -> {
-                if (oldValue != newValue) { invalidate() }
-            }
+            FLAG_REFRESH -> { invalidate() }
             FLAG_TEXT -> {
-                if (oldValue != newValue) {
+                mList?.apply {
                     val texts = getTextLists(newValue as String)
-                    mList.clear()
-                    mList.addAll(texts)
-                    val size = mList.size
+                    clear()
+                    addAll(texts)
+                    "size == $size \t $mListPosition".log()
                     if (size <= mListPosition) { mListPosition = size - 1 }
                     if (mUpdateStrategy == STRATEGY_TEXT_UPDATE_DEFAULT || size == 1) { invalidate() }
                 }
             }
             FLAG_TEXT_SIZE -> {
                 if (mTextPaint.textSize != oldValue) {
-                    val texts = getTextLists(mText)
                     mTextPaint.textSize = newValue as Float
-                    mListPosition = 0
-                    mList.clear()
-                    mList.addAll(texts)
-                    invalidate()
-                }
-            }
-            FLAG_SCROLL_SPEED -> {
-                mViewAnimator?.also { animator ->
-                    animator.cancel()
-                    animator.start()
-                }
-            }
-            FLAG_GRAVITY -> {
-                if (oldValue != newValue) {
-
-                    mTextPaint.textAlign = newValue as Paint.Align
-                    invalidate()
+//                    val texts = getTextLists(mText)
+//                    mListPosition = 0
+//                    mList.clear()
+//                    mList.addAll(texts)
+//                    invalidate()
                 }
             }
         }
     }
 
-    fun animateDx() {
-        mViewAnimator = animate()
-            .setDuration(mAnimationDuration)
-            .setInterpolator(LinearInterpolator())
-            .setListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    // 动画结束后的处理
-                }
-            })
-            .translationX(mTextX + layoutParams.width)
-            .withEndAction {
-                // 动画结束后的处理
-                translationX = -width.toFloat()
-                mList.log()
-                if (mListPosition < mList.size - 1) {
-                    mListPosition ++
-                } else {
-                    mListPosition = 0
-                }
-                animateDx()
-            }
-            .withStartAction {
-                // 动画开始时的处理
-            }
-    }
-
-    fun cancelAnimator() {
-        mViewAnimator?.also { animator ->
-            animator.cancel()
-            translationX = mTextX
-        }
+    fun updateTextList() {
     }
 }
