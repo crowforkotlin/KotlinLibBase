@@ -16,11 +16,15 @@ import androidx.annotation.IntRange
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import com.crow.base.ext.log
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 import kotlin.properties.Delegates
+
 
 /**
  * ● 静态文本组件 -- 布局
@@ -29,7 +33,7 @@ import kotlin.properties.Delegates
  * @author crowforkotlin
  * @formatter:on
  */
-class StaticMarLayout(context: Context) : FrameLayout(context)  {
+class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
 
     companion object {
 
@@ -39,7 +43,7 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
          * ● 2023-10-31 14:09:00 周二 下午
          * @author crowforkotlin
          */
-        private const val DEBUG = false
+        internal const val DEBUG = false
 
         /**
          * ● 缓存VIEW个数 勿动改了后会出问题
@@ -54,10 +58,14 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
         private const val FLAG_CHILD_REFRESH = 0x03
         private const val FLAG_LAYOUT_REFRESH = 0x04
         private const val FLAG_SCROLL_SPEED = 0x05
+        private const val FLAG_GRAVITY = 0x06
+        private const val FLAG_NEWLINE = 0x07
 
         const val ANIMATION_DEFAULT = 2000
         const val ANIMATION_MOVE_X = 2001
         const val ANIMATION_MOVE_Y = 2002
+        const val ANIMATION_FADE = 2003
+        const val ANIMATION_FADE_SYNC = 2004
 
         const val GRAVITY_TOP_START = 1000
         const val GRAVITY_TOP_CENTER = 1001
@@ -105,87 +113,12 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
     private val mList : MutableList<Pair<String, Float>> = mutableListOf()
 
     /**
-     * ● 文本列表位置 -- 设置后会触发重新绘制
-     *
-     * ● 2023-10-31 14:06:16 周二 下午
-     * @author crowforkotlin
-     */
-    private var mListPosition : Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(FLAG_CHILD_REFRESH, oldPosition, newPosition) }
-
-    /**
      * ● 动画持续时间
      *
      * ● 2023-10-31 13:59:35 周二 下午
      * @author crowforkotlin
      */
     private var mAnimationDuration: Long = 8000L
-
-    /**
-     * ● 旋转角度 -- 设置后会触发重新绘制
-     *
-     * ● 2023-10-31 14:02:02 周二 下午
-     * @author crowforkotlin
-     */
-    @get:FloatRange(from = 0.0, to = 360.0)
-    var mRotation: Float by Delegates.observable(0f) { _, oldRotation, newRotation -> onVariableChanged(FLAG_LAYOUT_REFRESH, oldRotation, newRotation) }
-
-    /**
-     * ● 文字大小 -- 设置后会触发重新绘制
-     *
-     * ● 2023-10-31 14:03:04 周二 下午
-     * @author crowforkotlin
-     */
-    @get:FloatRange(from = 12.0, to = 768.0)
-    var mTextSize: Float by Delegates.observable(13f) { _, oldSize, newSize -> onVariableChanged(FLAG_TEXT_SIZE, oldSize, newSize) }
-
-    /**
-     * ● 视图对齐方式 -- 上中下
-     *
-     * ● 2023-10-31 15:24:43 周二 下午
-     * @author crowforkotlin
-     */
-    @get:IntRange(from = 1000, to = 1008)
-    var mGravity: Int by Delegates.observable(GRAVITY_TOP_START) { _, oldSize, newSize -> onVariableChanged(FLAG_CHILD_REFRESH, oldSize, newSize) }
-
-    /**
-     * ● 是否开启换行
-     *
-     * ● 2023-10-31 17:31:20 周二 下午
-     * @author crowforkotlin
-     */
-    var mNewLineEnable: Boolean = false
-
-    /**
-     * ● 动画模式（一般是默认）
-     *
-     * ● 2023-10-31 18:06:32 周二 下午
-     * @author crowforkotlin
-     */
-    var mAnimationMode by Delegates.observable(ANIMATION_DEFAULT) { _, oldAnimation, newAnimation -> onVariableChanged(FLAG_LAYOUT_REFRESH, oldAnimation, newAnimation)}
-
-    /**
-     * ● 滚动速度 --- 设置滚动速度实际上是对动画持续时间进行设置 重写SET函数，实现滚动速度设置 对动画时间进行相对的设置，设置后会触发重新绘制
-     *
-     * ● 2023-10-31 13:59:53 周二 下午
-     * @author crowforkotlin
-     */
-    @get:IntRange(from = 1, to = 15) var mScrollSpeed: Int by Delegates.observable(1) { _, oldSpeed, newSpeed -> onVariableChanged(FLAG_SCROLL_SPEED, oldSpeed, newSpeed) }
-
-    /**
-     * ● 停留时间 静止时生效
-     *
-     * ● 2023-10-31 13:59:29 周二 下午
-     * @author crowforkotlin
-     */
-    @IntRange(from = 1, to = 255) var mResidenceTime: Int = 5
-
-    /**
-     * ● 文本内容 -- 设置后会触发重新绘制
-     *
-     * ● 2023-10-31 14:03:56 周二 下午
-     * @author crowforkotlin
-     */
-    var mText: String by Delegates.observable("") { _, oldText, newText -> onVariableChanged(FLAG_TEXT, oldText, newText) }
 
     /**
      * ● 当前正在执行的视图动画，没有动画则为空
@@ -211,6 +144,12 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
      */
     private var mAnimationJob: Job? = null
 
+    /**
+     * ● 上一个动画值
+     *
+     * ● 2023-11-02 17:16:40 周四 下午
+     * @author crowforkotlin
+     */
     private var mLastAnimation = -1
 
     /**
@@ -237,6 +176,92 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
      */
     private var mCurrentViewPos: Int by Delegates.observable(0) { _, oldViewPos, newViewPos -> onVariableChanged(FLAG_LAYOUT_REFRESH, oldViewPos, newViewPos) }
 
+    /**
+     * ● 文本列表位置 -- 设置后会触发重新绘制
+     *
+     * ● 2023-10-31 14:06:16 周二 下午
+     * @author crowforkotlin
+     */
+    private var mListPosition : Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(FLAG_CHILD_REFRESH, oldPosition, newPosition) }
+
+    /**
+     * ● 多行文本（换行）位置
+     *
+     * ● 2023-11-03 18:19:24 周五 下午
+     * @author crowforkotlin
+     */
+    private var mMultipleLinePos: Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(FLAG_CHILD_REFRESH, oldPosition, newPosition)}
+
+    /**
+     * ● 文字大小 -- 设置后会触发重新绘制
+     *
+     * ● 2023-10-31 14:03:04 周二 下午
+     * @author crowforkotlin
+     */
+    @get:FloatRange(from = 12.0, to = 768.0)
+    var mTextSize: Float by Delegates.observable(13f) { _, oldSize, newSize -> onVariableChanged(FLAG_TEXT_SIZE, oldSize, newSize) }
+
+    /**
+     * ● 视图对齐方式 -- 上中下
+     *
+     * ● 2023-10-31 15:24:43 周二 下午
+     * @author crowforkotlin
+     */
+    @get:IntRange(from = 1000, to = 1008)
+    var mGravity: Int by Delegates.observable(GRAVITY_TOP_START) { _, oldSize, newSize -> onVariableChanged(FLAG_GRAVITY, oldSize, newSize) }
+
+    /**
+     * ● 滚动速度 --- 设置滚动速度实际上是对动画持续时间进行设置 重写SET函数，实现滚动速度设置 对动画时间进行相对的设置，设置后会触发重新绘制
+     *
+     * ● 2023-10-31 13:59:53 周二 下午
+     * @author crowforkotlin
+     */
+    @get:IntRange(from = 1, to = 15)
+    var mScrollSpeed: Int by Delegates.observable(1) { _, oldSpeed, newSpeed -> onVariableChanged(FLAG_SCROLL_SPEED, oldSpeed, newSpeed) }
+
+    /**
+     * ● 文本内容 -- 设置后会触发重新绘制
+     *
+     * ● 2023-10-31 14:03:56 周二 下午
+     * @author crowforkotlin
+     */
+    var mText: String by Delegates.observable("") { _, oldText, newText -> onVariableChanged(FLAG_TEXT, oldText, newText) }
+
+    /**
+     * ● 是否开启换行
+     *
+     * ● 2023-10-31 17:31:20 周二 下午
+     * @author crowforkotlin
+     */
+    var mMultipleLineEnable: Boolean by Delegates.observable(false) { _, oldValue, newValue -> onVariableChanged(FLAG_NEWLINE, oldValue, newValue) }
+
+    /**
+     * ● 动画模式（一般是默认）
+     *
+     * ● 2023-10-31 18:06:32 周二 下午
+     * @author crowforkotlin
+     */
+    var mAnimationMode = ANIMATION_DEFAULT
+
+    /**
+     * ● 是否启用单行动画（当文本 刚好当前页面显示完 根据该值决定是否启用动画）
+     *
+     * ● 2023-11-02 17:13:40 周四 下午
+     * @author crowforkotlin
+     */
+    var mEnableSingleTextAnimation: Boolean = false
+        set(value) {
+            mLastAnimation = -1
+            field = value
+        }
+
+    /**
+     * ● 停留时间 静止时生效
+     *
+     * ● 2023-10-31 13:59:29 周二 下午
+     * @author crowforkotlin
+     */
+    var mResidenceTime: Long = 5000
 
     /**
      * ● 动画X方向
@@ -260,6 +285,8 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
         mTextPaint.typeface = Typeface.MONOSPACE
     }
 
+
+
     /**
      * ● 窗口分离
      *
@@ -278,6 +305,9 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
     private fun initStaticMarView(): StaticMarView {
         return StaticMarView(context).also { view ->
             view.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            view.mTextPaint = mTextPaint
+            view.mMultiLineEnable = mMultipleLineEnable
+            view.mGravity = mGravity
             addView(view)
         }
     }
@@ -290,13 +320,10 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
      */
     private fun<T : Any> onVariableChanged(flag: Int, oldValue: T, newValue: T) {
 
-        // 值相等 不进行更新
-        if (oldValue == newValue) { return }
-
         // 根据FLAG 执行对于Logic
         when(flag) {
-            FLAG_LAYOUT_REFRESH -> { onNotifyLayoutUpdate()}
-            FLAG_CHILD_REFRESH -> { onNotifyViewUpdate(newValue as Int) }
+            FLAG_LAYOUT_REFRESH -> { onNotifyLayoutUpdate() }
+            FLAG_CHILD_REFRESH -> { onNotifyViewUpdate() }
             FLAG_TEXT -> {
                 onUpdateTextLists(getTextLists(newValue as String))
                 // 如果缓存View < 2个 则初始化缓存View
@@ -313,7 +340,7 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
                 onNotifyLayoutUpdate()
             }
             FLAG_TEXT_SIZE -> {
-                mTextPaint.textSize = newValue as Float
+                mTextPaint.textSize = mTextSize
                 onUpdateTextLists(getTextLists(mText))
                 onUpdatePosOrView()
             }
@@ -325,6 +352,12 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
                 } else {
                     2000L + (400 * baseDuration)
                 }
+            }
+            FLAG_NEWLINE -> {
+                mCacheViews.forEach {  view -> view.mMultiLineEnable = mMultipleLineEnable }
+            }
+            FLAG_NEWLINE -> {
+                mCacheViews.forEach {  view -> view.mGravity = mGravity }
             }
         }
     }
@@ -350,7 +383,7 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
     private fun onUpdatePosOrView() {
         val size = mList.size
         if (size <= mListPosition) { mListPosition = size - 1 }
-        else if (mUpdateStrategy == STRATEGY_TEXT_UPDATE_DEFAULT) { onNotifyViewUpdate(mListPosition) }
+        else if (mUpdateStrategy == STRATEGY_TEXT_UPDATE_DEFAULT) { onNotifyViewUpdate() }
     }
 
 
@@ -361,19 +394,33 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
      * @author crowforkotlin
      */
     private fun onNotifyLayoutUpdate() {
-        if (mLastAnimation == mAnimationMode || (mCacheViews.size < 2 || mList.isEmpty())) return
+        if ((mList.size == 1 && !mEnableSingleTextAnimation) || mLastAnimation == mAnimationMode) return
         else { mLastAnimation = mAnimationMode }
         cancelAnimator()
         cancelAnimationJob()
-        when(mAnimationMode) {
-            ANIMATION_DEFAULT -> {
-                launchDefaultAnimation()
-            }
-            ANIMATION_MOVE_X -> {
-                launchMoveXAnimation()
-            }
-            ANIMATION_MOVE_Y -> {
-                launchMoveYAnimation()
+        mAnimationJob = mViewScope.launch(CoroutineExceptionHandler { _, throwable -> throwable.stackTraceToString().log() }) {
+            while(true) {
+                when(mAnimationMode) {
+                    ANIMATION_DEFAULT -> {
+                        launchDefaultAnimation()
+                    }
+                    ANIMATION_MOVE_X -> {
+                        delay(mResidenceTime)
+                        launchMoveXAnimation()
+                    }
+                    ANIMATION_MOVE_Y -> {
+                        delay(mResidenceTime)
+                        launchMoveYAnimation()
+                    }
+                    ANIMATION_FADE -> {
+                        delay(mResidenceTime)
+                        launchFadeAnimation(sync = false)
+                    }
+                    ANIMATION_FADE_SYNC -> {
+                        delay(mResidenceTime)
+                        launchFadeAnimation(sync = true)
+                    }
+                }
             }
         }
     }
@@ -413,22 +460,20 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
      * ● 2023-11-01 19:13:46 周三 下午
      * @author crowforkotlin
      */
-    private fun onNotifyViewUpdate(listPosition: Int) {
+    private fun onNotifyViewUpdate() {
+        if (mList.isEmpty()) return
         val viewCurrentA = mCacheViews[mCurrentViewPos]
-        val list = mList.toMutableList()
+        val list : MutableList<Pair<String, Float>> = mList.toMutableList()
         viewCurrentA.mList = list
-        viewCurrentA.mListPosition = listPosition
-        if (mAnimationMode != ANIMATION_DEFAULT) {
-            val position: Int
-            val viewNextB = if (listPosition < mCacheViews.size - 1) {
-                position = listPosition + 1
-                mCacheViews[position]
-            } else {
-                position = listPosition - 1
-                mCacheViews[position]
-            }
+        if (mMultipleLineEnable) {
+            viewCurrentA.mListPosition = mMultipleLinePos
+        } else {
+            viewCurrentA.mListPosition = mListPosition
+        }
+        if (mEnableSingleTextAnimation &&  mAnimationMode != ANIMATION_DEFAULT) {
+/*            val viewNextB = getNextView(mCurrentViewPos)
             viewNextB.mList = list
-            viewNextB.mListPosition = position
+            viewNextB.mListPosition = listPosition*/
         }
     }
 
@@ -458,7 +503,7 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
                 textStringBuilder = StringBuilder()
                 textStringBuilder.append(char)
                 if (index == textMaxIndex) {
-                    textList.add(textStringBuilder.toString() to textStringWidth)
+                    textList.add(textStringBuilder.toString() to textWidth)
                 } else {
                     textStringWidth = textWidth
                 }
@@ -466,6 +511,13 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
         }
         return textList
     }
+
+    /**
+     * ● 更新ChildView的位置
+     *
+     * ● 2023-11-02 17:24:43 周四 下午
+     * @author crowforkotlin
+     */
     private fun updateViewPosition() {
         if (mCurrentViewPos < mCacheViews.size - 1) {
             mCurrentViewPos ++
@@ -474,11 +526,33 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
         }
     }
 
+    /**
+     * ● 更新文本列表的位置
+     *
+     * ● 2023-11-02 17:24:58 周四 下午
+     * @author crowforkotlin
+     */
     private fun updateTextListPosition() {
-        if (mListPosition < mList.size - 1) {
-            mListPosition ++
-        } else {
-            mListPosition = 0
+        if (mList.isEmpty()) return
+        when(mMultipleLineEnable) {
+            true -> {
+                val maxLine = (measuredHeight / getTextHeight(mTextPaint.fontMetrics)).toInt()
+                val listSize = mList.size
+                var pos: Int = listSize / maxLine
+                if (listSize  % maxLine != 0) { pos ++ }
+                if (mMultipleLinePos < pos - 1) {
+                    mMultipleLinePos ++
+                } else {
+                    mMultipleLinePos = 0
+                }
+            }
+            false ->{
+                if (mListPosition < mList.size - 1) {
+                    mListPosition ++
+                } else {
+                    mListPosition = 0
+                }
+            }
         }
     }
 
@@ -488,16 +562,11 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
      * ● 2023-11-01 09:51:05 周三 上午
      * @author crowforkotlin
      */
-    private fun launchDefaultAnimation() {
-        if (mAnimationMode != StaticMarView.ANIMATION_DEFAULT) return
-        mAnimationJob = mViewScope.launch {
-            while(true) {
-                onNotifyViewVisibility(mCurrentViewPos)
-                delay(mResidenceTime * 1000L)
-                updateViewPosition()
-                updateTextListPosition()
-            }
-        }
+    private suspend fun launchDefaultAnimation() {
+        onNotifyViewVisibility(mCurrentViewPos)
+        delay(mResidenceTime)
+        updateViewPosition()
+        updateTextListPosition()
     }
 
 
@@ -507,8 +576,7 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
      * ● 2023-11-01 09:51:11 周三 上午
      * @author crowforkotlin
      */
-    private fun launchMoveXAnimation() {
-        if (mAnimationMode != ANIMATION_MOVE_X) return
+    private suspend fun launchMoveXAnimation() = suspendCancellableCoroutine { continuation ->
         mViewAnimatorSet?.cancel()
         mViewAnimatorSet = AnimatorSet()
         val viewCurrentA = mCacheViews[mCurrentViewPos]
@@ -536,10 +604,8 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
                     updateTextListPosition()
                 }
                 override fun onAnimationEnd(animation: Animator) {
-                    mAnimationJob = mViewScope.launch {
-                        delay(mResidenceTime * 1000L)
-                        launchMoveXAnimation()
-                    }
+                    viewCurrentA.isInvisible = true
+                    if (!continuation.isCompleted) continuation.resume(Unit)
                 }
                 override fun onAnimationCancel(animation: Animator) {}
                 override fun onAnimationRepeat(animation: Animator) {}
@@ -554,8 +620,7 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
      * ● 2023-11-01 09:51:11 周三 上午
      * @author crowforkotlin
      */
-    private fun launchMoveYAnimation() {
-        if (mAnimationMode != ANIMATION_MOVE_Y) return
+    private suspend fun launchMoveYAnimation() = suspendCancellableCoroutine { continuation ->
         mViewAnimatorSet?.cancel()
         mViewAnimatorSet = AnimatorSet()
         val viewCurrentA = mCacheViews[mCurrentViewPos]
@@ -583,9 +648,47 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
                     updateTextListPosition()
                 }
                 override fun onAnimationEnd(animation: Animator) {
-                    mAnimationJob = mViewScope.launch {
-                        delay(mResidenceTime * 1000L)
-                        launchMoveYAnimation()
+                    viewCurrentA.isInvisible = true
+                    if (!continuation.isCompleted) continuation.resume(Unit)
+                }
+                override fun onAnimationCancel(animation: Animator) {}
+                override fun onAnimationRepeat(animation: Animator) {}
+            })
+            animatorSet.start()
+        }
+    }
+
+    /**
+     * ● 但如淡出动画
+     *
+     * ● 2023-11-02 17:24:05 周四 下午
+     * @param sync 是否同步
+     * @author crowforkotlin
+     */
+    private suspend fun launchFadeAnimation(sync: Boolean) = suspendCancellableCoroutine { continuation ->
+        mViewAnimatorSet?.cancel()
+        mViewAnimatorSet = AnimatorSet()
+        val viewCurrentA = mCacheViews[mCurrentViewPos]
+        val viewNextB = getNextView(mCurrentViewPos)
+        val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA, "alpha", 1f , 0f)
+        val viewAnimationB = ObjectAnimator.ofFloat(viewNextB, "alpha", 0f, 1f)
+        mViewAnimatorSet?.let { animatorSet ->
+            animatorSet.duration = mAnimationDuration
+            animatorSet.interpolator = LinearInterpolator()
+            if (sync) { animatorSet.playSequentially(viewAnimationA, viewAnimationB) }
+            else { animatorSet.playTogether(viewAnimationA, viewAnimationB) }
+            animatorSet.addListener(object : Animator.AnimatorListener {
+                override fun onAnimationStart(animation: Animator) {
+                    viewNextB.alpha = 0f
+                    viewNextB.isVisible = true
+                    updateViewPosition()
+                    updateTextListPosition()
+                }
+                override fun onAnimationEnd(animation: Animator) {
+                    viewCurrentA.isInvisible = true
+                    if (!continuation.isCompleted) {
+                        "Resume".log()
+                        continuation.resume(Unit)
                     }
                 }
                 override fun onAnimationCancel(animation: Animator) {}
@@ -596,18 +699,50 @@ class StaticMarLayout(context: Context) : FrameLayout(context)  {
     }
 
     /**
+     * ● 取消动画任务
+     *
+     * ● 2023-11-02 17:24:00 周四 下午
+     * @author crowforkotlin
+     */
+    private fun cancelAnimationJob() {
+        mAnimationJob?.cancel()
+        mAnimationJob = null
+    }
+
+    /**
      * ● 取消动画
      *
      * ● 2023-11-01 09:51:21 周三 上午
      * @author crowforkotlin
      */
-    fun cancelAnimator() {
+    private fun cancelAnimator() {
         mViewAnimatorSet?.cancel()
         mViewAnimatorSet = null
     }
 
-    private fun cancelAnimationJob() {
-        mAnimationJob?.cancel()
-        mAnimationJob = null
+    /**
+     * ● 应用配置 -- 触发View的更新
+     *
+     * ● 2023-11-02 17:25:43 周四 下午
+     * @author crowforkotlin
+     */
+    fun applyOption() {
+        runCatching {
+            mViewScope.launch {
+                if (mCacheViews.isEmpty()) return@launch
+                cancelAnimator()
+                cancelAnimationJob()
+                val viewCurrentA = mCacheViews[mCurrentViewPos]
+                val viewNextB = getNextView(mCurrentViewPos)
+                viewCurrentA.alpha = 1f
+                viewCurrentA.isVisible = true
+                viewNextB.alpha = 1f
+                viewNextB.isInvisible = true
+                mLastAnimation = -1
+                onNotifyLayoutUpdate()
+                onNotifyViewUpdate()
+            }
+        }
+            .onFailure { cause -> "● StaticMarLayout apply option failure : ${cause.stackTraceToString()}".log() }
     }
 }

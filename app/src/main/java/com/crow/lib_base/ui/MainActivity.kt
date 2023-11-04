@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.crow.lib_base.databinding.AppActivityMainBinding
 import com.crow.lib_base.ui.view.StaticMarLayout
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -27,33 +26,43 @@ class MainActivity : AppCompatActivity() {
             }
         }*/
 
-        initStaticMarView()
-    }
-
-    private fun initStaticMarView(): StaticMarLayout {
-        val layout = StaticMarLayout(this)
-//        layout.mAnimationMode = StaticMarLayout.ANIMATION_MOVE_X
-        layout.mAnimationMode = StaticMarLayout.ANIMATION_DEFAULT
-        layout.layoutParams = FrameLayout.LayoutParams(128,64)
-        mBinding.root.addView(layout)
-        val text = "123456你好 --- 456789哈哈"
-        layout.mScrollSpeed = 15
-        layout.mText = text
-        lifecycleScope.launch {
-            repeat(Int.MAX_VALUE) {
-                delay(500)
-                layout.mText = "$text$it"
+        val view = createStaticMarView(128, 64)
+        mBinding.button.setOnClickListener {
+            view.mEnableSingleTextAnimation = false
+            view.applyOption()
+        }
+/*
+        val views = mutableListOf<StaticMarLayout>()
+        repeat(8) { x ->
+            repeat(4) { y ->
+                val view = createStaticMarView(16, 16)
+                views.add(view)
+                view.x = 16f * x
+                view.y = 16f * y
+                mBinding.root.addView(view)
+            }
+            lifecycleScope.launch {
+                repeat(Int.MAX_VALUE) {
+                    delay(100)
+                    views.random().mText = it.toString()
+                }
             }
         }
-        lifecycleScope.launch {
-            delay(8000)
-            layout.mAnimationMode = StaticMarLayout.ANIMATION_MOVE_X
-            delay(1500)
-            layout.mAnimationMode = StaticMarLayout.ANIMATION_DEFAULT
-            delay(5000)
-            layout.mAnimationMode = StaticMarLayout.ANIMATION_MOVE_Y
-            layout.mAnimationLeft = true
-        }
+*/
+    }
+
+    private fun createStaticMarView(width: Int, height: Int): StaticMarLayout {
+//        val text = "ABCDpqg-123456789-ABCYPJI-!&*#(()-OWPXU啊这样-好吧我觉得有BUG-确定吗？？？？"
+        val text = "123456789-ABCYPJI-!&*#(()-OWPXU啊这样-好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！！"
+        val layout = StaticMarLayout(this)
+        mBinding.root.addView(layout)
+        layout.layoutParams = FrameLayout.LayoutParams(width,height)
+        layout.mMultipleLineEnable = true
+        layout.mGravity = StaticMarLayout.GRAVITY_CENTER_START
+        layout.mEnableSingleTextAnimation = true
+        layout.mAnimationMode = StaticMarLayout.ANIMATION_FADE_SYNC
+        layout.mScrollSpeed = 15
+        layout.mText = text
         return layout
     }
 }
