@@ -1,10 +1,11 @@
-@file:Suppress("unused", "SpellCheckingInspection", "MemberVisibilityCanBePrivate")
+@file:Suppress("unused", "SpellCheckingInspection", "MemberVisibilityCanBePrivate", "NewApi")
 
 package com.crow.lib_base.ui.view
 
 import android.animation.Animator
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.animation.PropertyValuesHolder
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Paint
@@ -13,8 +14,6 @@ import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import androidx.annotation.FloatRange
 import androidx.annotation.IntRange
-import androidx.core.view.isInvisible
-import androidx.core.view.isVisible
 import com.crow.base.ext.log
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
@@ -33,8 +32,14 @@ import kotlin.properties.Delegates
  * @author crowforkotlin
  * @formatter:on
  */
-class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
+class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
 
+    /**
+     * ● 静态区域
+     *
+     * ● 2023-11-08 11:29:59 周三 上午
+     * @author crowforkotlin
+     */
     companion object {
 
         /**
@@ -52,6 +57,7 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
          * @author crowforkotlin
          */
         private const val REQUIRED_CACHE_SIZE = 2
+        private const val MAX_STRING_LENGTH = 2 shl 9
 
         private const val FLAG_TEXT = 0x00
         private const val FLAG_TEXT_SIZE = 0x01
@@ -66,6 +72,8 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
         const val ANIMATION_MOVE_Y = 2002
         const val ANIMATION_FADE = 2003
         const val ANIMATION_FADE_SYNC = 2004
+        const val ANIMATION_CENTER = 2005
+        const val ANIMATION_ROTATION_X = 2006
 
         const val GRAVITY_TOP_START = 1000
         const val GRAVITY_TOP_CENTER = 1001
@@ -93,6 +101,24 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
          * @author crowforkotlin
          */
         const val STRATEGY_TEXT_UPDATE_LAZY = 0x01 shl 16
+
+
+        /**
+         * ● 重新加载更新策略：当重新绘制的时候是否重新执行动画
+         *
+         * ● 2023-11-06 16:02:52 周一 下午
+         * @author crowforkotlin
+         */
+        const val STRATEGY_ANIMATION_UPDATE_RESTART = 0x02 shl 16
+
+        /**
+         * ● 默认更新策略：当重新绘制的时候是否继续执行已停止的动画
+         *
+         * ● 2023-11-06 16:04:22 周一 下午
+         * @author crowforkotlin
+         */
+        const val STRATEGY_ANIMATION_UPDATE_DEFAULT = 0x03 shl 16
+
     }
 
     /**
@@ -129,14 +155,6 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
     private var mViewAnimatorSet : AnimatorSet? = null
 
     /**
-     * ● 更新策略 详细可看定义声明
-     *
-     * ● 2023-10-31 14:07:36 周二 下午
-     * @author crowforkotlin
-     */
-    private var mUpdateStrategy : Int = STRATEGY_TEXT_UPDATE_DEFAULT
-
-    /**
      * ● 动画任务
      *
      * ● 2023-10-31 18:10:59 周二 下午
@@ -153,6 +171,14 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
     private var mLastAnimation = -1
 
     /**
+     * ● 当前持续时间
+     *
+     * ● 2023-11-06 19:14:20 周一 下午
+     * @author crowforkotlin
+     */
+    private var mCurrentDuration = mAnimationDuration
+
+    /**
      * ● UI 协程
      *
      * ● 2023-10-31 18:09:55 周二 下午
@@ -166,7 +192,7 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-01 09:53:01 周三 上午
      * @author crowforkotlin
      */
-    private val mCacheViews = ArrayList<StaticMarView>(REQUIRED_CACHE_SIZE)
+    private val mCacheViews = ArrayList<StaticTextView>(REQUIRED_CACHE_SIZE)
 
     /**
      * ● 当前视图的位置
@@ -193,30 +219,27 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
     private var mMultipleLinePos: Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(FLAG_CHILD_REFRESH, oldPosition, newPosition)}
 
     /**
-     * ● 文字大小 -- 设置后会触发重新绘制
+     * ● 文字大小 -- 设置后会触发重新绘制 FloatRange(from = 12.0, to = 768.0)
      *
      * ● 2023-10-31 14:03:04 周二 下午
      * @author crowforkotlin
      */
-    @get:FloatRange(from = 12.0, to = 768.0)
     var mTextSize: Float by Delegates.observable(13f) { _, oldSize, newSize -> onVariableChanged(FLAG_TEXT_SIZE, oldSize, newSize) }
 
     /**
-     * ● 视图对齐方式 -- 上中下
+     * ● 视图对齐方式 -- 上中下 IntRange(from = 1000, to = 1008)
      *
      * ● 2023-10-31 15:24:43 周二 下午
      * @author crowforkotlin
      */
-    @get:IntRange(from = 1000, to = 1008)
     var mGravity: Int by Delegates.observable(GRAVITY_TOP_START) { _, oldSize, newSize -> onVariableChanged(FLAG_GRAVITY, oldSize, newSize) }
 
     /**
-     * ● 滚动速度 --- 设置滚动速度实际上是对动画持续时间进行设置 重写SET函数，实现滚动速度设置 对动画时间进行相对的设置，设置后会触发重新绘制
+     * ● 滚动速度 --- 设置滚动速度实际上是对动画持续时间进行设置 重写SET函数，实现滚动速度设置 对动画时间进行相对的设置，设置后会触发重新绘制 IntRange(from = 1, to = 15)
      *
      * ● 2023-10-31 13:59:53 周二 下午
      * @author crowforkotlin
      */
-    @get:IntRange(from = 1, to = 15)
     var mScrollSpeed: Int by Delegates.observable(1) { _, oldSpeed, newSpeed -> onVariableChanged(FLAG_SCROLL_SPEED, oldSpeed, newSpeed) }
 
     /**
@@ -244,16 +267,28 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
     var mAnimationMode = ANIMATION_DEFAULT
 
     /**
+     * ● 更新策略 详细可看定义声明
+     *
+     * ● 2023-10-31 14:07:36 周二 下午
+     * @author crowforkotlin
+     */
+    var mUpdateStrategy : Int = STRATEGY_TEXT_UPDATE_DEFAULT
+
+    /**
+     * ● 动画策略 详细可查看定义声明
+     *
+     * ● 2023-11-06 19:29:33 周一 下午
+     * @author crowforkotlin
+     */
+    var mAnimationStrategy : Int = STRATEGY_ANIMATION_UPDATE_DEFAULT
+
+    /**
      * ● 是否启用单行动画（当文本 刚好当前页面显示完 根据该值决定是否启用动画）
      *
      * ● 2023-11-02 17:13:40 周四 下午
      * @author crowforkotlin
      */
     var mEnableSingleTextAnimation: Boolean = false
-        set(value) {
-            mLastAnimation = -1
-            field = value
-        }
 
     /**
      * ● 停留时间 静止时生效
@@ -285,8 +320,6 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
         mTextPaint.typeface = Typeface.MONOSPACE
     }
 
-
-
     /**
      * ● 窗口分离
      *
@@ -302,8 +335,14 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
         mList.clear()
     }
 
-    private fun initStaticMarView(): StaticMarView {
-        return StaticMarView(context).also { view ->
+    /**
+     * ● 初始化静态文本视图
+     *
+     * ● 2023-11-08 11:24:35 周三 上午
+     * @author crowforkotlin
+     */
+    private fun initStaticMarView(): StaticTextView {
+        return StaticTextView(context).also { view ->
             view.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
             view.mTextPaint = mTextPaint
             view.mMultiLineEnable = mMultipleLineEnable
@@ -325,15 +364,14 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
             FLAG_LAYOUT_REFRESH -> { onNotifyLayoutUpdate() }
             FLAG_CHILD_REFRESH -> { onNotifyViewUpdate() }
             FLAG_TEXT -> {
-                onUpdateTextLists(getTextLists(newValue as String))
+                val text = if (mText.length > MAX_STRING_LENGTH) { mText.substring(0, MAX_STRING_LENGTH) } else mText
+                onUpdateTextLists(getTextLists(text))
                 // 如果缓存View < 2个 则初始化缓存View
                 val currentCacheViewSize = mCacheViews.size
                 if (currentCacheViewSize < REQUIRED_CACHE_SIZE) {
                     val viewsToAdd = REQUIRED_CACHE_SIZE - currentCacheViewSize
                     for (index in 0 until  viewsToAdd) {
-                        val view = initStaticMarView()
-                        if (index == 1) { view.isInvisible = true }
-                        mCacheViews.add(view)
+                        mCacheViews.add(initStaticMarView())
                     }
                 }
                 onUpdatePosOrView()
@@ -348,10 +386,11 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
                 // 根据 mScrollSpeed 动态调整 mAnimationDuration
                 val baseDuration = (16 - newValue as Int)
                 mAnimationDuration = if (baseDuration == 1) {
-                    2000L
+                    1000L
                 } else {
-                    2000L + (400 * baseDuration)
+                    1000L + (500 * baseDuration)
                 }
+                mCurrentDuration = mAnimationDuration
             }
             FLAG_NEWLINE -> {
                 mCacheViews.forEach {  view -> view.mMultiLineEnable = mMultipleLineEnable }
@@ -386,6 +425,23 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
         else if (mUpdateStrategy == STRATEGY_TEXT_UPDATE_DEFAULT) { onNotifyViewUpdate() }
     }
 
+    /**
+     * ● 文本列表是否只占满一个页面
+     *
+     * ● 2023-11-06 10:53:23 周一 上午
+     * @author crowforkotlin
+     */
+    private fun isListSizeFitPage(): Boolean {
+        return if (mMultipleLineEnable) {
+            val textMaxLine = (measuredHeight / getTextHeight(mTextPaint.fontMetrics)).toInt()
+            val textListSize = mList.size
+            var totalCount: Int = textListSize / textMaxLine
+            if (textListSize  % textMaxLine != 0) { totalCount ++ }
+            totalCount == 1
+        } else {
+            mList.size == 1
+        }
+    }
 
     /**
      * ● 通知视图更新
@@ -394,12 +450,13 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
      * @author crowforkotlin
      */
     private fun onNotifyLayoutUpdate() {
-        if ((mList.size == 1 && !mEnableSingleTextAnimation) || mLastAnimation == mAnimationMode) return
+        if (mLastAnimation == mAnimationMode) return
         else { mLastAnimation = mAnimationMode }
         cancelAnimator()
         cancelAnimationJob()
         mAnimationJob = mViewScope.launch(CoroutineExceptionHandler { _, throwable -> throwable.stackTraceToString().log() }) {
             while(true) {
+                if (isListSizeFitPage() && !mEnableSingleTextAnimation) return@launch
                 when(mAnimationMode) {
                     ANIMATION_DEFAULT -> {
                         launchDefaultAnimation()
@@ -420,6 +477,14 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
                         delay(mResidenceTime)
                         launchFadeAnimation(sync = true)
                     }
+                    ANIMATION_CENTER -> {
+                        delay(mResidenceTime)
+                        launchCenterAnimation()
+                    }
+                    ANIMATION_ROTATION_X -> {
+                        delay(mResidenceTime)
+                        launchRotationXAnimation()
+                    }
                 }
             }
         }
@@ -436,8 +501,8 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
         val viewNextB = getNextView(pos)
         viewCurrentA.translationX = 0f
         viewNextB.translationX = 0f
-        viewCurrentA.isVisible = true
-        viewNextB.isInvisible = true
+        viewCurrentA.visibility = VISIBLE
+        viewNextB.visibility = INVISIBLE
     }
 
     /**
@@ -446,7 +511,7 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-02 10:44:24 周四 上午
      * @author crowforkotlin
      */
-    private fun getNextView(pos: Int): StaticMarView {
+    private fun getNextView(pos: Int): StaticTextView {
         return if (pos < mCacheViews.size - 1) {
             mCacheViews[pos + 1]
         } else {
@@ -461,7 +526,7 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
      * @author crowforkotlin
      */
     private fun onNotifyViewUpdate() {
-        if (mList.isEmpty()) return
+        if (mList.isEmpty() || mCurrentViewPos > mCacheViews.size - 1) return
         val viewCurrentA = mCacheViews[mCurrentViewPos]
         val list : MutableList<Pair<String, Float>> = mList.toMutableList()
         viewCurrentA.mList = list
@@ -536,11 +601,11 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
         if (mList.isEmpty()) return
         when(mMultipleLineEnable) {
             true -> {
-                val maxLine = (measuredHeight / getTextHeight(mTextPaint.fontMetrics)).toInt()
-                val listSize = mList.size
-                var pos: Int = listSize / maxLine
-                if (listSize  % maxLine != 0) { pos ++ }
-                if (mMultipleLinePos < pos - 1) {
+                val textMaxLine = (measuredHeight / getTextHeight(mTextPaint.fontMetrics)).toInt()
+                val textListSize = mList.size
+                var textTotalCount: Int = textListSize / textMaxLine
+                if (textListSize  % textMaxLine != 0) { textTotalCount ++ }
+                if (mMultipleLinePos < textTotalCount - 1) {
                     mMultipleLinePos ++
                 } else {
                     mMultipleLinePos = 0
@@ -564,11 +629,110 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
      */
     private suspend fun launchDefaultAnimation() {
         onNotifyViewVisibility(mCurrentViewPos)
-        delay(mResidenceTime)
+        delay(if (mResidenceTime < 500) 500 else mResidenceTime)
         updateViewPosition()
         updateTextListPosition()
     }
 
+    /**
+     * ● 中心缩放
+     *
+     * ● 2023-11-08 17:53:58 周三 下午
+     * @author crowforkotlin
+     */
+    private suspend fun launchCenterAnimation() = suspendCancellableCoroutine<Unit> { continuation ->
+        mViewAnimatorSet?.cancel()
+        mViewAnimatorSet = AnimatorSet()
+        val viewCurrentA = mCacheViews[mCurrentViewPos]
+        val viewNextB = getNextView(mCurrentViewPos)
+        val viewAnimationA = ObjectAnimator.ofPropertyValuesHolder(
+            viewCurrentA,
+            PropertyValuesHolder.ofFloat("scaleX", 1.0f, 0.0f), // X轴方向的缩放
+            PropertyValuesHolder.ofFloat("scaleY", 1.0f, 0.0f)  // Y轴方向的缩放
+        )
+        val viewAnimationB = ObjectAnimator.ofPropertyValuesHolder(
+            viewNextB,
+            PropertyValuesHolder.ofFloat("scaleX", 0.0f, 1.0f), // X轴方向的缩放
+            PropertyValuesHolder.ofFloat("scaleY", 0.0f, 1.0f)  // Y轴方向的缩放
+        )
+        mViewAnimatorSet?.let { animatorSet ->
+            animatorSet.duration = mCurrentDuration
+            animatorSet.interpolator = LinearInterpolator()
+            animatorSet.playSequentially(viewAnimationA, viewAnimationB)
+            animatorSet.addListener(object : Animator.AnimatorListener {
+                override fun onAnimationStart(animation: Animator) {
+                    viewNextB.scaleX = 0f
+                    viewNextB.scaleY = 0f
+                    viewCurrentA.translationX = 0f
+                    viewCurrentA.translationY = 0f
+                    viewNextB.translationX = 0f
+                    viewNextB.translationY = 0f
+                    if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
+                    if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
+                    mCurrentDuration = mAnimationDuration
+                    updateViewPosition()
+                    updateTextListPosition()
+                }
+                override fun onAnimationEnd(animation: Animator) {
+                    if (!continuation.isCompleted) continuation.resume(Unit)
+                }
+
+                override fun onAnimationCancel(animation: Animator) {
+                    if (mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
+                        mCurrentDuration = animatorSet.duration - animatorSet.currentPlayTime
+                    }
+                }
+                override fun onAnimationRepeat(animation: Animator) {}
+            })
+            animatorSet.start()
+        }
+    }
+
+    /**
+     * ● X轴反转
+     *
+     * ● 2023-11-08 17:53:44 周三 下午
+     * @author crowforkotlin
+     */
+    private suspend fun launchRotationXAnimation() = suspendCancellableCoroutine<Unit> { continuation ->
+        mViewAnimatorSet?.cancel()
+        mViewAnimatorSet = AnimatorSet()
+        val viewCurrentA = mCacheViews[mCurrentViewPos]
+        val viewNextB = getNextView(mCurrentViewPos)
+        val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA,"rotationX", 90f, 0f) // X轴方向的缩放)
+        val viewAnimationB = ObjectAnimator.ofFloat(viewNextB,"rotationX", 0f, 90f)  // Y轴方向的缩放)
+        mViewAnimatorSet?.let { animatorSet ->
+            animatorSet.duration = mCurrentDuration
+            animatorSet.interpolator = LinearInterpolator()
+            animatorSet.playSequentially(viewAnimationA, viewAnimationB)
+            animatorSet.addListener(object : Animator.AnimatorListener {
+                override fun onAnimationStart(animation: Animator) {
+                    viewNextB.rotationX = 0f
+                    viewNextB.rotationX = 0f
+                    viewCurrentA.translationX = 0f
+                    viewCurrentA.translationY = 0f
+                    viewNextB.translationX = 0f
+                    viewNextB.translationY = 0f
+                    if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
+                    if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
+                    mCurrentDuration = mAnimationDuration
+                    updateViewPosition()
+                    updateTextListPosition()
+                }
+                override fun onAnimationEnd(animation: Animator) {
+                    if (!continuation.isCompleted) continuation.resume(Unit)
+                }
+
+                override fun onAnimationCancel(animation: Animator) {
+                    if (mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
+                        mCurrentDuration = animatorSet.duration - animatorSet.currentPlayTime
+                    }
+                }
+                override fun onAnimationRepeat(animation: Animator) {}
+            })
+            animatorSet.start()
+        }
+    }
 
     /**
      * ● X方向移动
@@ -576,7 +740,7 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-01 09:51:11 周三 上午
      * @author crowforkotlin
      */
-    private suspend fun launchMoveXAnimation() = suspendCancellableCoroutine { continuation ->
+    private suspend fun launchMoveXAnimation() = suspendCancellableCoroutine<Unit> { continuation ->
         mViewAnimatorSet?.cancel()
         mViewAnimatorSet = AnimatorSet()
         val viewCurrentA = mCacheViews[mCurrentViewPos]
@@ -584,30 +748,54 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
         val viewAEnd : Float
         val viewBStart : Float
         val viewX = layoutParams.width.toFloat()
-        if (mAnimationLeft) {
-            viewAEnd = -viewX
-            viewBStart = viewX
-        } else {
-            viewAEnd = viewX
-            viewBStart = -viewX
+
+        when(mAnimationLeft) {
+            true -> {
+                viewAEnd = -viewX
+                viewBStart = viewX
+                if (viewNextB.translationX <= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
+                    viewCurrentA.translationX = 0f
+                    viewNextB.translationX = viewBStart
+                } else {
+                    viewCurrentA.translationX = 0f
+                    viewNextB.translationX = viewBStart
+                }
+            }
+            false -> {
+                viewAEnd = viewX
+                viewBStart = -viewX
+                if (viewNextB.translationX >= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
+                    viewCurrentA.translationX = 0f
+                    viewNextB.translationX = viewBStart
+                } else {
+                    viewCurrentA.translationX = 0f
+                    viewNextB.translationX = viewBStart
+                }
+            }
         }
-        val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA, "translationX", 0f , viewAEnd)
-        val viewAnimationB = ObjectAnimator.ofFloat(viewNextB, "translationX", viewBStart, 0f)
+
+        val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA, "translationX", viewCurrentA.translationX , viewAEnd)
+        val viewAnimationB = ObjectAnimator.ofFloat(viewNextB, "translationX", viewNextB.translationX, 0f)
         mViewAnimatorSet?.let { animatorSet ->
-            animatorSet.duration = mAnimationDuration
+            animatorSet.duration = mCurrentDuration
             animatorSet.interpolator = LinearInterpolator()
             animatorSet.playTogether(viewAnimationA, viewAnimationB)
             animatorSet.addListener(object : Animator.AnimatorListener {
                 override fun onAnimationStart(animation: Animator) {
-                    viewNextB.isVisible = true
+                    if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
+                    if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
+                    mCurrentDuration = mAnimationDuration
                     updateViewPosition()
                     updateTextListPosition()
                 }
                 override fun onAnimationEnd(animation: Animator) {
-                    viewCurrentA.isInvisible = true
                     if (!continuation.isCompleted) continuation.resume(Unit)
                 }
-                override fun onAnimationCancel(animation: Animator) {}
+                override fun onAnimationCancel(animation: Animator) {
+                    if (mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
+                        mCurrentDuration = animatorSet.duration - animatorSet.currentPlayTime
+                    }
+                }
                 override fun onAnimationRepeat(animation: Animator) {}
             })
             animatorSet.start()
@@ -615,12 +803,12 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
     }
 
     /**
-     * ● X方向移动
+     * ● Y方向移动
      *
      * ● 2023-11-01 09:51:11 周三 上午
      * @author crowforkotlin
      */
-    private suspend fun launchMoveYAnimation() = suspendCancellableCoroutine { continuation ->
+    private suspend fun launchMoveYAnimation() = suspendCancellableCoroutine<Unit> { continuation ->
         mViewAnimatorSet?.cancel()
         mViewAnimatorSet = AnimatorSet()
         val viewCurrentA = mCacheViews[mCurrentViewPos]
@@ -628,30 +816,57 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
         val viewAEnd : Float
         val viewBStart : Float
         val viewY = layoutParams.height.toFloat()
-        if (mAnimationTop) {
-            viewAEnd = -viewY
-            viewBStart = viewY
-        } else {
-            viewAEnd = viewY
-            viewBStart = -viewY
+
+        when(mAnimationTop) {
+            true -> {
+                viewAEnd = -viewY
+                viewBStart = viewY
+                if (viewNextB.translationY <= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_RESTART) {
+                    viewCurrentA.translationY = 0f
+                    viewNextB.translationY = viewBStart
+                } else if(viewNextB.translationY == 0f) {
+                    viewCurrentA.translationY = 0f
+                    viewNextB.translationY = viewBStart
+                }
+            }
+            false -> {
+                viewAEnd = viewY
+                viewBStart = -viewY
+                if (viewNextB.translationY >= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_RESTART) {
+                    viewCurrentA.translationY = 0f
+                    viewNextB.translationY = viewBStart
+                } else if(viewNextB.translationY == 0f || viewNextB.translationY == viewAEnd) {
+                    viewCurrentA.translationY = 0f
+                    viewNextB.translationY = viewBStart
+                }
+            }
         }
-        val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA, "translationY", 0f , viewAEnd)
-        val viewAnimationB = ObjectAnimator.ofFloat(viewNextB, "translationY", viewBStart, 0f)
+
+        val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA, "translationY", viewCurrentA.translationY, viewAEnd)
+        val viewAnimationB = ObjectAnimator.ofFloat(viewNextB, "translationY", viewNextB.translationY, 0f)
         mViewAnimatorSet?.let { animatorSet ->
-            animatorSet.duration = mAnimationDuration
+            animatorSet.duration = mCurrentDuration
             animatorSet.interpolator = LinearInterpolator()
             animatorSet.playTogether(viewAnimationA, viewAnimationB)
             animatorSet.addListener(object : Animator.AnimatorListener {
                 override fun onAnimationStart(animation: Animator) {
-                    viewNextB.isVisible = true
+                    if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
+                    if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
+                    mCurrentDuration = mAnimationDuration
                     updateViewPosition()
                     updateTextListPosition()
                 }
                 override fun onAnimationEnd(animation: Animator) {
-                    viewCurrentA.isInvisible = true
-                    if (!continuation.isCompleted) continuation.resume(Unit)
+                    if (!continuation.isCompleted) {
+                        continuation.resume(Unit)
+                    }
                 }
-                override fun onAnimationCancel(animation: Animator) {}
+                override fun onAnimationCancel(animation: Animator) {
+                    if (mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
+                        mCurrentDuration = animatorSet.duration - animatorSet.currentPlayTime
+                    }
+                    whenAnimationCancel()
+                }
                 override fun onAnimationRepeat(animation: Animator) {}
             })
             animatorSet.start()
@@ -659,13 +874,13 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
     }
 
     /**
-     * ● 但如淡出动画
+     * ● 淡入淡出动画
      *
      * ● 2023-11-02 17:24:05 周四 下午
      * @param sync 是否同步
      * @author crowforkotlin
      */
-    private suspend fun launchFadeAnimation(sync: Boolean) = suspendCancellableCoroutine { continuation ->
+    private suspend fun launchFadeAnimation(sync: Boolean) = suspendCancellableCoroutine<Unit> { continuation ->
         mViewAnimatorSet?.cancel()
         mViewAnimatorSet = AnimatorSet()
         val viewCurrentA = mCacheViews[mCurrentViewPos]
@@ -679,22 +894,42 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
             else { animatorSet.playTogether(viewAnimationA, viewAnimationB) }
             animatorSet.addListener(object : Animator.AnimatorListener {
                 override fun onAnimationStart(animation: Animator) {
+                    if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
+                    if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
                     viewNextB.alpha = 0f
-                    viewNextB.isVisible = true
+                    viewCurrentA.translationX = 0f
+                    viewCurrentA.translationY = 0f
+                    viewNextB.translationX = 0f
+                    viewNextB.translationY = 0f
                     updateViewPosition()
                     updateTextListPosition()
                 }
                 override fun onAnimationEnd(animation: Animator) {
-                    viewCurrentA.isInvisible = true
-                    if (!continuation.isCompleted) {
-                        "Resume".log()
-                        continuation.resume(Unit)
-                    }
+                    if (!continuation.isCompleted) { continuation.resume(Unit) }
                 }
                 override fun onAnimationCancel(animation: Animator) {}
                 override fun onAnimationRepeat(animation: Animator) {}
             })
             animatorSet.start()
+        }
+    }
+
+    /**
+     * ● 当动画被终止 进行撤回操作
+     *
+     * ● 2023-11-08 11:22:09 周三 上午
+     * @author crowforkotlin
+     */
+    private fun whenAnimationCancel() {
+        if (mCurrentViewPos == 0) {
+            mCurrentViewPos = mCacheViews.size - 1
+        } else {
+            mCurrentViewPos --
+        }
+        if (mListPosition == 0) {
+            mListPosition = mList.size - 1
+        } else {
+            mListPosition --
         }
     }
 
@@ -730,14 +965,6 @@ class StaticMarLayout(context: Context) : FrameLayout(context), IMarExt  {
         runCatching {
             mViewScope.launch {
                 if (mCacheViews.isEmpty()) return@launch
-                cancelAnimator()
-                cancelAnimationJob()
-                val viewCurrentA = mCacheViews[mCurrentViewPos]
-                val viewNextB = getNextView(mCurrentViewPos)
-                viewCurrentA.alpha = 1f
-                viewCurrentA.isVisible = true
-                viewNextB.alpha = 1f
-                viewNextB.isInvisible = true
                 mLastAnimation = -1
                 onNotifyLayoutUpdate()
                 onNotifyViewUpdate()

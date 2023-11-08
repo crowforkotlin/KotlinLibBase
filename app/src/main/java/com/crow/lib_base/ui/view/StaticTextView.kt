@@ -22,7 +22,7 @@ import kotlin.properties.Delegates
  * @author: crowforkotlin
  * @formatter:on
  */
-class StaticMarView(context: Context) : View(context), IMarExt {
+class StaticTextView(context: Context) : View(context), IMarExt {
 
     companion object {
 
@@ -78,7 +78,7 @@ class StaticMarView(context: Context) : View(context), IMarExt {
      * @author crowforkotlin
      */
     @get:IntRange(from = 1000, to = 1008)
-    var mGravity: Int by Delegates.observable(StaticMarLayout.GRAVITY_TOP_START) { _, oldSize, newSize -> onVariableChanged(FLAG_REFRESH, oldSize, newSize) }
+    var mGravity: Int by Delegates.observable(StaticTextLayout.GRAVITY_TOP_START) { _, oldSize, newSize -> onVariableChanged(FLAG_REFRESH, oldSize, newSize) }
 
     /**
      * ● 是否开启换行
@@ -87,6 +87,12 @@ class StaticMarView(context: Context) : View(context), IMarExt {
      * @author crowforkotlin
      */
     var mMultiLineEnable: Boolean by Delegates.observable(false) { _, oldValue, newValue -> onVariableChanged(FLAG_REFRESH, oldValue, newValue) }
+
+    init {
+
+        // 设置View使用硬件加速渲染绘制， 不然Animation移动View会造成绘制的内容抖动
+        setLayerType(LAYER_TYPE_HARDWARE, null)
+    }
 
     /**
      * ● 绘制文本
@@ -97,54 +103,165 @@ class StaticMarView(context: Context) : View(context), IMarExt {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
+        // 文本列表长度
+        val textListSize = mList.size
+
+        // 文本长度是否无效？
+        val isLengthInvalid = mListPosition > textListSize - 1
+
         // 画笔未初始化
-        if (!::mTextPaint.isInitialized || mList.isEmpty()) return
+        if (!::mTextPaint.isInitialized || isLengthInvalid) return
 
         // 获取文本
-        val text = if (mListPosition > mList.size - 1) { mList.last() } else mList[mListPosition]
+        val text = if (isLengthInvalid) { mList.last() } else mList[mListPosition]
 
         // 设置X和Y的坐标 ，Paint绘制的文本在descent位置 进行相对应的计算即可
         when(mGravity) {
-            StaticMarLayout.GRAVITY_TOP_START -> {
-                val fontMetrics = mTextPaint.fontMetrics
-                mTextY = abs(fontMetrics.ascent)
-                drawTopText(canvas, text.first) { mTextX = 0f }
+            StaticTextLayout.GRAVITY_TOP_START -> {
+                mTextY = abs(mTextPaint.fontMetrics.ascent)
+                drawTopText(canvas, text, textListSize) { mTextX = 0f }
             }
-            StaticMarLayout.GRAVITY_TOP_CENTER -> {
-                val fontMetrics = mTextPaint.fontMetrics
-                mTextY = abs(fontMetrics.ascent)
-                drawTopText(canvas, text.first) { mTextX = (width shr 1) - it / 2 }
+            StaticTextLayout.GRAVITY_TOP_CENTER -> {
+                mTextY = abs(mTextPaint.fontMetrics.ascent)
+                drawTopText(canvas, text, textListSize) { mTextX = (width shr 1) - it / 2 }
             }
-            StaticMarLayout.GRAVITY_TOP_END -> {
-                val fontMetrics = mTextPaint.fontMetrics
-                mTextY = abs(fontMetrics.ascent)
-                drawTopText(canvas, text.first) { mTextX = width - it }
+            StaticTextLayout.GRAVITY_TOP_END -> {
+                mTextY = abs(mTextPaint.fontMetrics.ascent)
+                drawTopText(canvas, text, textListSize) { mTextX = width - it }
             }
-            StaticMarLayout.GRAVITY_CENTER_START -> {
-                drawCenterText(canvas, text.first) { mTextX = 0f }
+            StaticTextLayout.GRAVITY_CENTER_START -> {
+                drawCenterText(canvas, text, textListSize) { mTextX = 0f }
             }
-            StaticMarLayout.GRAVITY_CENTER -> {
-                drawCenterText(canvas, text.first) { mTextX = (width shr 1) - it / 2 }
+            StaticTextLayout.GRAVITY_CENTER -> {
+                drawCenterText(canvas, text, textListSize) { mTextX = (width shr 1) - it / 2 }
             }
-            StaticMarLayout.GRAVITY_CENTER_END -> {
-                drawCenterText(canvas, text.first) { mTextX = width - it }
+            StaticTextLayout.GRAVITY_CENTER_END -> {
+                drawCenterText(canvas, text, textListSize) { mTextX = width - it }
             }
-            StaticMarLayout.GRAVITY_BOTTOM_START -> {
+            StaticTextLayout.GRAVITY_BOTTOM_START -> {
                 mTextY = height - calculateBaselineOffsetY(mTextPaint.fontMetrics)
-                drawBottomText(canvas, text.first) { mTextX = 0f }
+                drawBottomText(canvas, text, textListSize) { mTextX = 0f }
             }
-            StaticMarLayout.GRAVITY_BOTTOM_CENTER -> {
+            StaticTextLayout.GRAVITY_BOTTOM_CENTER -> {
                 mTextY = height - calculateBaselineOffsetY(mTextPaint.fontMetrics)
-                drawBottomText(canvas, text.first) { mTextX =  (width shr 1) - it /  2 }
+                drawBottomText(canvas, text, textListSize) { mTextX =  (width shr 1) - it /  2 }
             }
-            StaticMarLayout.GRAVITY_BOTTOM_END -> {
+            StaticTextLayout.GRAVITY_BOTTOM_END -> {
                 mTextY = height - calculateBaselineOffsetY(mTextPaint.fontMetrics)
-                drawBottomText(canvas, text.first) { mTextX = width - it }
+                drawBottomText(canvas, text, textListSize) { mTextX = width - it }
             }
         }
+    }
 
+    /**
+     * ● 绘制顶部文本
+     *
+     * ● 2023-11-04 17:53:43 周六 下午
+     * @author crowforkotlin
+     */
+    private inline fun drawTopText(canvas: Canvas, text: Pair<String, Float>, textListSize: Int, onIniTextX: (Float) -> Unit) {
+        if (mMultiLineEnable && textListSize > 1) {
+            val textHeight = ceil(getTextHeight(mTextPaint.fontMetrics))
+            val maxLine = (measuredHeight / textHeight).toInt()
+            var pos = mListPosition * maxLine
+            repeat(maxLine) {
+                if (pos < mList.size) {
+                    val currentText = mList[pos]
+                    onIniTextX(currentText.second)
+                    canvas.drawText(currentText.first, mTextX, mTextY, mTextPaint)
+                    onRunDebug(canvas)
+                }
+                else return@repeat
+                pos ++
+                mTextY += textHeight
+            }
+        } else {
+            onIniTextX(text.second)
+            val currentText = text.first
+            canvas.drawText(currentText, 0, currentText.length, mTextX, mTextY, mTextPaint)
+        }
+    }
+
+    /**
+     * ● 绘制中心文本
+     *
+     * ● 2023-11-04 17:54:09 周六 下午
+     * @author crowforkotlin
+     */
+    private inline fun drawCenterText(canvas: Canvas, text: Pair<String, Float>, textListSize: Int, onIniTextX: (Float) -> Unit) {
+        if (mMultiLineEnable && textListSize > 1) {
+            val screenHeightHalf = height shr 1
+            val fontMetrics = mTextPaint.fontMetrics
+            val textHeight = ceil(getTextHeight(fontMetrics))
+            val validSpace = screenHeightHalf - (textHeight / 2)
+            val topCount = (validSpace / textHeight).toInt()
+            val bottomCount = (validSpace / textHeight).toInt()
+            val totalCount = topCount + bottomCount + 1
+            mTextY = (screenHeightHalf + calculateBaselineOffsetY(fontMetrics)) - textHeight * topCount
+            val textListSize = mList.size
+            var startPos =mListPosition * totalCount
+            repeat(totalCount) {
+                if (startPos < textListSize) {
+                    val currentText = mList[startPos]
+                    onIniTextX(currentText.second)
+                    canvas.drawText(currentText.first, mTextX, mTextY, mTextPaint)
+                    onRunDebug(canvas)
+                } else {
+                    return@repeat
+                }
+                startPos ++
+                mTextY += textHeight
+            }
+        } else {
+            onIniTextX(text.second)
+            mTextY = (height shr 1) + calculateBaselineOffsetY(mTextPaint.fontMetrics)
+            val currentText = text.first
+            canvas.drawText(currentText, 0, currentText.length, mTextX, mTextY, mTextPaint)
+            onRunDebug(canvas)
+        }
+    }
+
+    /**
+     * ● 绘制底部文本
+     *
+     * ● 2023-11-04 17:54:00 周六 下午
+     * @author crowforkotlin
+     */
+    private inline fun drawBottomText(canvas: Canvas, text: Pair<String, Float>, textListSize: Int, onIniTextX: (Float) -> Unit) {
+        if (mMultiLineEnable && textListSize > 1) {
+            val textHeight = ceil(getTextHeight(mTextPaint.fontMetrics))
+            val maxLine = (measuredHeight / textHeight).toInt()
+            val listSize = mList.size
+            val startPos = (mListPosition + 1) * maxLine
+            val endPos = mListPosition * maxLine
+            var pos = if (listSize >= startPos) startPos - 1 else listSize - 1
+            repeat(maxLine) {
+                if (pos >= endPos) {
+                    val currentText = mList[pos]
+                    onIniTextX(currentText.second)
+                    canvas.drawText(currentText.first, mTextX, mTextY, mTextPaint)
+                    onRunDebug(canvas)
+                }
+                else return@repeat
+                pos --
+                mTextY -= textHeight
+            }
+        } else {
+            val currentText = text.first
+            canvas.drawText(currentText, 0, currentText.length, mTextX, mTextY, mTextPaint)
+            onRunDebug(canvas)
+        }
+    }
+
+    /**
+     * ● Debug Login Function
+     *
+     * ● 2023-11-07 18:44:26 周二 下午
+     * @author crowforkotlin
+     */
+    private fun onRunDebug(canvas: Canvas) {
         // DEBUG 模式
-        if (StaticMarLayout.DEBUG) {
+        if (StaticTextLayout.DEBUG) {
             val paintColor = mTextPaint.color
             // 绘制2条参考线
             mTextPaint.color = Color.RED
@@ -166,98 +283,6 @@ class StaticMarView(context: Context) : View(context), IMarExt {
             mTextPaint.alpha = 80
             canvas.drawRect(1f, 1f, layoutParams.width.toFloat() - 1, layoutParams.height.toFloat() - 1, mTextPaint)
             mTextPaint.color = paintColor
-        }
-    }
-
-    /**
-     * ● 绘制顶部文本
-     *
-     * ● 2023-11-04 17:53:43 周六 下午
-     * @author crowforkotlin
-     */
-    private inline fun drawTopText(canvas: Canvas, text: String, onIniTextX: (Float) -> Unit) {
-        if (mMultiLineEnable) {
-            val textHeight = ceil(getTextHeight(mTextPaint.fontMetrics))
-            val maxLine = (measuredHeight / textHeight).toInt()
-            var pos = mListPosition * maxLine
-            repeat(maxLine) {
-                if (pos < mList.size) {
-                    val currentText = mList[pos]
-                    onIniTextX(currentText.second)
-                    canvas.drawText(currentText.first, mTextX, mTextY, mTextPaint)
-                }
-                else return@repeat
-                pos ++
-                mTextY += textHeight
-            }
-        } else {
-            canvas.drawText(text, 0, text.length, mTextX, mTextY, mTextPaint)
-        }
-    }
-
-    /**
-     * ● 绘制中心文本
-     *
-     * ● 2023-11-04 17:54:09 周六 下午
-     * @author crowforkotlin
-     */
-    private inline fun drawCenterText(canvas: Canvas, text: String, onIniTextX: (Float) -> Unit) {
-        if (mMultiLineEnable) {
-            val screenHeightHalf = height shr 1
-            val fontMetrics = mTextPaint.fontMetrics
-            val textHeight = ceil(getTextHeight(fontMetrics))
-            val textHeightHalf = textHeight / 2
-            val validSpace = screenHeightHalf - textHeightHalf
-            val topCount = (validSpace / textHeight).toInt()
-            val bottomCount = (validSpace / textHeight).toInt()
-            val totalCount = topCount + bottomCount + 1
-            val centetY = screenHeightHalf + calculateBaselineOffsetY(fontMetrics)
-            mTextY = centetY - textHeight * topCount
-            val listSize = mList.size
-            var startPos =mListPosition * totalCount
-            repeat(totalCount) {
-                if (startPos < listSize) {
-                    val currentText = mList[startPos]
-                    onIniTextX(currentText.second)
-                    canvas.drawText(currentText.first, mTextX, mTextY, mTextPaint)
-                } else {
-                    return@repeat
-                }
-                startPos ++
-                mTextY += textHeight
-            }
-        } else {
-            mTextY = (height shr 1) + calculateBaselineOffsetY(mTextPaint.fontMetrics)
-            canvas.drawText(text, 0, text.length, mTextX, mTextY, mTextPaint)
-        }
-    }
-
-    /**
-     * ● 绘制底部文本
-     *
-     * ● 2023-11-04 17:54:00 周六 下午
-     * @author crowforkotlin
-     */
-    private inline fun drawBottomText(canvas: Canvas, text: String, onIniTextX: (Float) -> Unit) {
-        if (mMultiLineEnable && mList.size > 1) {
-            val textHeight = ceil(getTextHeight(mTextPaint.fontMetrics))
-            val maxLine = (measuredHeight / textHeight).toInt()
-            val listSize = mList.size
-            val startPos = (mListPosition + 1) * maxLine
-            val endPos = mListPosition * maxLine
-            var pos = if (listSize >= startPos) startPos - 1 else listSize - 1
-            repeat(maxLine) {
-                if (pos >= endPos) {
-                    val currentText = mList[pos]
-                    onIniTextX(currentText.second)
-                    canvas.drawText(currentText.first, mTextX, mTextY, mTextPaint)
-                }
-                else return@repeat
-                pos --
-                mTextY -= textHeight
-            }
-        } else {
-            canvas.drawText(text, 0, text.length, mTextX, mTextY, mTextPaint)
         }
     }
 

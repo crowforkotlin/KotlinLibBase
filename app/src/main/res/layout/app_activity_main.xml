@@ -30,12 +30,14 @@
         android:layout_height="wrap_content"/>
 -->
 
+<!--
     <Button
         android:id="@+id/button"
         android:layout_marginEnd="120dp"
         android:layout_gravity="bottom|end"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
+-->
 
 
 </FrameLayout>
