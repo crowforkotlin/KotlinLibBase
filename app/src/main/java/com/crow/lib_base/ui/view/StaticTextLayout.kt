@@ -7,13 +7,13 @@ import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.PorterDuff
 import android.graphics.Typeface
 import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
-import androidx.annotation.FloatRange
-import androidx.annotation.IntRange
 import com.crow.base.ext.log
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
@@ -49,6 +49,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
          * @author crowforkotlin
          */
         internal const val DEBUG = false
+        internal const val ENABLE_AUTO_UPDATE = false
 
         /**
          * ● 缓存VIEW个数 勿动改了后会出问题
@@ -60,12 +61,15 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
         private const val MAX_STRING_LENGTH = 2 shl 9
 
         private const val FLAG_TEXT = 0x00
-        private const val FLAG_TEXT_SIZE = 0x01
+        private const val FLAG_FONT_SIZE = 0x01
         private const val FLAG_CHILD_REFRESH = 0x03
         private const val FLAG_LAYOUT_REFRESH = 0x04
         private const val FLAG_SCROLL_SPEED = 0x05
         private const val FLAG_GRAVITY = 0x06
-        private const val FLAG_NEWLINE = 0x07
+        private const val FLAG_MULTIPLE_LINE = 0x07
+        private const val FLAG_BACKGROUND_COLOR = 0x08
+        private const val FLAG_FONT_COLOR = 0x09
+        private const val FLAG_ANTI_ALIAS = 0x10
 
         const val ANIMATION_DEFAULT = 2000
         const val ANIMATION_MOVE_X = 2001
@@ -73,7 +77,6 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
         const val ANIMATION_FADE = 2003
         const val ANIMATION_FADE_SYNC = 2004
         const val ANIMATION_CENTER = 2005
-        const val ANIMATION_ROTATION_X = 2006
 
         const val GRAVITY_TOP_START = 1000
         const val GRAVITY_TOP_CENTER = 1001
@@ -224,7 +227,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-10-31 14:03:04 周二 下午
      * @author crowforkotlin
      */
-    var mTextSize: Float by Delegates.observable(13f) { _, oldSize, newSize -> onVariableChanged(FLAG_TEXT_SIZE, oldSize, newSize) }
+    var mFontSize: Float by Delegates.observable(13f) { _, oldSize, newSize -> onVariableChanged(FLAG_FONT_SIZE, oldSize, newSize) }
 
     /**
      * ● 视图对齐方式 -- 上中下 IntRange(from = 1000, to = 1008)
@@ -256,7 +259,32 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-10-31 17:31:20 周二 下午
      * @author crowforkotlin
      */
-    var mMultipleLineEnable: Boolean by Delegates.observable(false) { _, oldValue, newValue -> onVariableChanged(FLAG_NEWLINE, oldValue, newValue) }
+    var mMultipleLineEnable: Boolean by Delegates.observable(false) { _, oldValue, newValue -> onVariableChanged(FLAG_MULTIPLE_LINE, oldValue, newValue) }
+
+    /**
+     * ● 背景颜色
+     *
+     * ● 2023-11-09 09:47:58 周四 上午
+     * @author crowforkotlin
+     */
+    var mBackgroundColor: Int by Delegates.observable(Color.BLACK) { _, oldColor, newColor -> onVariableChanged(FLAG_BACKGROUND_COLOR, oldColor, newColor)}
+
+    /**
+     * ● 字体颜色
+     *
+     * ● 2023-11-09 09:47:58 周四 上午
+     * @author crowforkotlin
+     */
+    var mFontColor: Int by Delegates.observable(Color.RED) { _, oldColor, newColor -> onVariableChanged(FLAG_FONT_COLOR, oldColor, newColor)}
+
+    /**
+     * ● 是否开启抗锯齿
+     *
+     * ● 2023-11-09 14:42:36 周四 下午
+     * @author crowforkotlin
+     */
+    var mEnableAntiAlias: Boolean by Delegates.observable(false) { _, oldColor, newColor -> onVariableChanged(FLAG_ANTI_ALIAS, oldColor, newColor)}
+
 
     /**
      * ● 动画模式（一般是默认）
@@ -315,9 +343,14 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
     var mAnimationTop: Boolean = false
 
     init {
-        mTextPaint.color = Color.WHITE
-        mTextPaint.textSize = mTextSize
+        mTextPaint.color = mFontColor
+        mTextPaint.textSize = mFontSize
         mTextPaint.typeface = Typeface.MONOSPACE
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        super.dispatchDraw(canvas)
+        canvas.drawColor(mBackgroundColor, PorterDuff.Mode.DST_OVER)
     }
 
     /**
@@ -333,6 +366,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
         cancelAnimator()
         mCacheViews.clear()
         mList.clear()
+        mLastAnimation = -1
     }
 
     /**
@@ -373,14 +407,12 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
                     for (index in 0 until  viewsToAdd) {
                         mCacheViews.add(initStaticMarView())
                     }
+                    if (DEBUG) {
+                        mCacheViews.forEachIndexed { index, staticTextView -> staticTextView.tag = index }
+                    }
                 }
                 onUpdatePosOrView()
                 onNotifyLayoutUpdate()
-            }
-            FLAG_TEXT_SIZE -> {
-                mTextPaint.textSize = mTextSize
-                onUpdateTextLists(getTextLists(mText))
-                onUpdatePosOrView()
             }
             FLAG_SCROLL_SPEED -> {
                 // 根据 mScrollSpeed 动态调整 mAnimationDuration
@@ -392,12 +424,22 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
                 }
                 mCurrentDuration = mAnimationDuration
             }
-            FLAG_NEWLINE -> {
+            FLAG_MULTIPLE_LINE -> {
                 mCacheViews.forEach {  view -> view.mMultiLineEnable = mMultipleLineEnable }
             }
-            FLAG_NEWLINE -> {
+            FLAG_GRAVITY -> {
                 mCacheViews.forEach {  view -> view.mGravity = mGravity }
             }
+            FLAG_BACKGROUND_COLOR -> { invalidate() }
+
+
+        }
+    }
+
+    private fun onUpdateIfResetAnimation() {
+        if (mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_RESTART) {
+            mLastAnimation = -1
+            onNotifyLayoutUpdate(false)
         }
     }
 
@@ -419,10 +461,12 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-01 17:34:08 周三 下午
      * @author crowforkotlin
      */
-    private fun onUpdatePosOrView() {
+    private fun onUpdatePosOrView(updateAll: Boolean = false) {
         val size = mList.size
-        if (size <= mListPosition) { mListPosition = size - 1 }
-        else if (mUpdateStrategy == STRATEGY_TEXT_UPDATE_DEFAULT) { onNotifyViewUpdate() }
+        when {
+            size <= if (mMultipleLineEnable) mMultipleLinePos else mListPosition -> if (mMultipleLineEnable) mMultipleLinePos = 0 else mListPosition = size - 1
+            mUpdateStrategy == STRATEGY_TEXT_UPDATE_DEFAULT -> onNotifyViewUpdate(updateAll = updateAll)
+        }
     }
 
     /**
@@ -449,43 +493,24 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-01 10:15:07 周三 上午
      * @author crowforkotlin
      */
-    private fun onNotifyLayoutUpdate() {
+    private fun onNotifyLayoutUpdate(isDelay: Boolean = true) {
         if (mLastAnimation == mAnimationMode) return
         else { mLastAnimation = mAnimationMode }
         cancelAnimator()
         cancelAnimationJob()
+        var delay = isDelay
         mAnimationJob = mViewScope.launch(CoroutineExceptionHandler { _, throwable -> throwable.stackTraceToString().log() }) {
             while(true) {
                 if (isListSizeFitPage() && !mEnableSingleTextAnimation) return@launch
                 when(mAnimationMode) {
-                    ANIMATION_DEFAULT -> {
-                        launchDefaultAnimation()
-                    }
-                    ANIMATION_MOVE_X -> {
-                        delay(mResidenceTime)
-                        launchMoveXAnimation()
-                    }
-                    ANIMATION_MOVE_Y -> {
-                        delay(mResidenceTime)
-                        launchMoveYAnimation()
-                    }
-                    ANIMATION_FADE -> {
-                        delay(mResidenceTime)
-                        launchFadeAnimation(sync = false)
-                    }
-                    ANIMATION_FADE_SYNC -> {
-                        delay(mResidenceTime)
-                        launchFadeAnimation(sync = true)
-                    }
-                    ANIMATION_CENTER -> {
-                        delay(mResidenceTime)
-                        launchCenterAnimation()
-                    }
-                    ANIMATION_ROTATION_X -> {
-                        delay(mResidenceTime)
-                        launchRotationXAnimation()
-                    }
+                    ANIMATION_DEFAULT -> launchDefaultAnimation(isDelay = delay)
+                    ANIMATION_MOVE_X -> launchMoveXAnimation(isDelay = delay)
+                    ANIMATION_MOVE_Y -> launchMoveYAnimation(isDelay = delay)
+                    ANIMATION_FADE -> launchFadeAnimation(isDelay = delay, isSync = false)
+                    ANIMATION_FADE_SYNC -> launchFadeAnimation(isDelay = delay, isSync = true)
+                    ANIMATION_CENTER -> launchCenterAnimation(isDelay = delay)
                 }
+                delay = true
             }
         }
     }
@@ -525,21 +550,18 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-01 19:13:46 周三 下午
      * @author crowforkotlin
      */
-    private fun onNotifyViewUpdate() {
-        if (mList.isEmpty() || mCurrentViewPos > mCacheViews.size - 1) return
+    private fun onNotifyViewUpdate(updateAll: Boolean = false) {
+        if (mList.isEmpty() || mCacheViews.isEmpty() || mCurrentViewPos > mCacheViews.size - 1) return
         val viewCurrentA = mCacheViews[mCurrentViewPos]
         val list : MutableList<Pair<String, Float>> = mList.toMutableList()
         viewCurrentA.mList = list
         if (mMultipleLineEnable) {
+            "mCurrentViewPos --------------> $mCurrentViewPos".log()
             viewCurrentA.mListPosition = mMultipleLinePos
         } else {
             viewCurrentA.mListPosition = mListPosition
         }
-        if (mEnableSingleTextAnimation &&  mAnimationMode != ANIMATION_DEFAULT) {
-/*            val viewNextB = getNextView(mCurrentViewPos)
-            viewNextB.mList = list
-            viewNextB.mListPosition = listPosition*/
-        }
+        if (updateAll) getNextView(mCurrentViewPos).invalidate()
     }
 
     /**
@@ -553,7 +575,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
         var textStringBuilder = StringBuilder()
         val textList: MutableList<Pair<String, Float>> = mutableListOf()
         val textMaxIndex = originText.length - 1
-        mTextPaint.textSize = mTextSize
+        mTextPaint.textSize = mFontSize
         originText.forEachIndexed { index, char ->
             val textWidth = mTextPaint.measureText(char.toString(), 0, 1)
             textStringWidth += textWidth
@@ -627,9 +649,9 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-01 09:51:05 周三 上午
      * @author crowforkotlin
      */
-    private suspend fun launchDefaultAnimation() {
+    private suspend fun launchDefaultAnimation(isDelay: Boolean) {
         onNotifyViewVisibility(mCurrentViewPos)
-        delay(if (mResidenceTime < 500) 500 else mResidenceTime)
+        if(isDelay) delay(if (mResidenceTime < 500) 500 else mResidenceTime)
         updateViewPosition()
         updateTextListPosition()
     }
@@ -640,97 +662,56 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-08 17:53:58 周三 下午
      * @author crowforkotlin
      */
-    private suspend fun launchCenterAnimation() = suspendCancellableCoroutine<Unit> { continuation ->
-        mViewAnimatorSet?.cancel()
-        mViewAnimatorSet = AnimatorSet()
-        val viewCurrentA = mCacheViews[mCurrentViewPos]
-        val viewNextB = getNextView(mCurrentViewPos)
-        val viewAnimationA = ObjectAnimator.ofPropertyValuesHolder(
-            viewCurrentA,
-            PropertyValuesHolder.ofFloat("scaleX", 1.0f, 0.0f), // X轴方向的缩放
-            PropertyValuesHolder.ofFloat("scaleY", 1.0f, 0.0f)  // Y轴方向的缩放
-        )
-        val viewAnimationB = ObjectAnimator.ofPropertyValuesHolder(
-            viewNextB,
-            PropertyValuesHolder.ofFloat("scaleX", 0.0f, 1.0f), // X轴方向的缩放
-            PropertyValuesHolder.ofFloat("scaleY", 0.0f, 1.0f)  // Y轴方向的缩放
-        )
-        mViewAnimatorSet?.let { animatorSet ->
-            animatorSet.duration = mCurrentDuration
-            animatorSet.interpolator = LinearInterpolator()
-            animatorSet.playSequentially(viewAnimationA, viewAnimationB)
-            animatorSet.addListener(object : Animator.AnimatorListener {
-                override fun onAnimationStart(animation: Animator) {
-                    viewNextB.scaleX = 0f
-                    viewNextB.scaleY = 0f
-                    viewCurrentA.translationX = 0f
-                    viewCurrentA.translationY = 0f
-                    viewNextB.translationX = 0f
-                    viewNextB.translationY = 0f
-                    if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
-                    if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
-                    mCurrentDuration = mAnimationDuration
-                    updateViewPosition()
-                    updateTextListPosition()
-                }
-                override fun onAnimationEnd(animation: Animator) {
-                    if (!continuation.isCompleted) continuation.resume(Unit)
-                }
-
-                override fun onAnimationCancel(animation: Animator) {
-                    if (mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
-                        mCurrentDuration = animatorSet.duration - animatorSet.currentPlayTime
+    private suspend fun launchCenterAnimation(isDelay: Boolean) {
+        if(isDelay) delay(mResidenceTime)
+        return suspendCancellableCoroutine<Unit> { continuation ->
+            mViewAnimatorSet?.cancel()
+            mViewAnimatorSet = AnimatorSet()
+            val viewCurrentA = mCacheViews[mCurrentViewPos]
+            val viewNextB = getNextView(mCurrentViewPos)
+            val viewAnimationA = ObjectAnimator.ofPropertyValuesHolder(
+                viewCurrentA,
+                PropertyValuesHolder.ofFloat("scaleX", 1.0f, 0.0f), // X轴方向的缩放
+                PropertyValuesHolder.ofFloat("scaleY", 1.0f, 0.0f)  // Y轴方向的缩放
+            )
+            val viewAnimationB = ObjectAnimator.ofPropertyValuesHolder(
+                viewNextB,
+                PropertyValuesHolder.ofFloat("scaleX", 0.0f, 1.0f), // X轴方向的缩放
+                PropertyValuesHolder.ofFloat("scaleY", 0.0f, 1.0f)  // Y轴方向的缩放
+            )
+            mViewAnimatorSet?.let { animatorSet ->
+                animatorSet.duration = mCurrentDuration
+                animatorSet.interpolator = LinearInterpolator()
+                animatorSet.playSequentially(viewAnimationA, viewAnimationB)
+                animatorSet.addListener(object : Animator.AnimatorListener {
+                    override fun onAnimationStart(animation: Animator) {
+                        viewNextB.scaleX = 0f
+                        viewNextB.scaleY = 0f
+                        viewCurrentA.translationX = 0f
+                        viewCurrentA.translationY = 0f
+                        viewNextB.translationX = 0f
+                        viewNextB.translationY = 0f
+                        if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
+                        if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
+                        mCurrentDuration = mAnimationDuration
+                        updateViewPosition()
+                        updateTextListPosition()
                     }
-                }
-                override fun onAnimationRepeat(animation: Animator) {}
-            })
-            animatorSet.start()
-        }
-    }
 
-    /**
-     * ● X轴反转
-     *
-     * ● 2023-11-08 17:53:44 周三 下午
-     * @author crowforkotlin
-     */
-    private suspend fun launchRotationXAnimation() = suspendCancellableCoroutine<Unit> { continuation ->
-        mViewAnimatorSet?.cancel()
-        mViewAnimatorSet = AnimatorSet()
-        val viewCurrentA = mCacheViews[mCurrentViewPos]
-        val viewNextB = getNextView(mCurrentViewPos)
-        val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA,"rotationX", 90f, 0f) // X轴方向的缩放)
-        val viewAnimationB = ObjectAnimator.ofFloat(viewNextB,"rotationX", 0f, 90f)  // Y轴方向的缩放)
-        mViewAnimatorSet?.let { animatorSet ->
-            animatorSet.duration = mCurrentDuration
-            animatorSet.interpolator = LinearInterpolator()
-            animatorSet.playSequentially(viewAnimationA, viewAnimationB)
-            animatorSet.addListener(object : Animator.AnimatorListener {
-                override fun onAnimationStart(animation: Animator) {
-                    viewNextB.rotationX = 0f
-                    viewNextB.rotationX = 0f
-                    viewCurrentA.translationX = 0f
-                    viewCurrentA.translationY = 0f
-                    viewNextB.translationX = 0f
-                    viewNextB.translationY = 0f
-                    if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
-                    if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
-                    mCurrentDuration = mAnimationDuration
-                    updateViewPosition()
-                    updateTextListPosition()
-                }
-                override fun onAnimationEnd(animation: Animator) {
-                    if (!continuation.isCompleted) continuation.resume(Unit)
-                }
-
-                override fun onAnimationCancel(animation: Animator) {
-                    if (mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
-                        mCurrentDuration = animatorSet.duration - animatorSet.currentPlayTime
+                    override fun onAnimationEnd(animation: Animator) {
+                        if (!continuation.isCompleted) continuation.resume(Unit)
                     }
-                }
-                override fun onAnimationRepeat(animation: Animator) {}
-            })
-            animatorSet.start()
+
+                    override fun onAnimationCancel(animation: Animator) {
+                        if (mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
+                            mCurrentDuration = animatorSet.duration - animatorSet.currentPlayTime
+                        }
+                    }
+
+                    override fun onAnimationRepeat(animation: Animator) {}
+                })
+                animatorSet.start()
+            }
         }
     }
 
@@ -740,65 +721,70 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-01 09:51:11 周三 上午
      * @author crowforkotlin
      */
-    private suspend fun launchMoveXAnimation() = suspendCancellableCoroutine<Unit> { continuation ->
-        mViewAnimatorSet?.cancel()
-        mViewAnimatorSet = AnimatorSet()
-        val viewCurrentA = mCacheViews[mCurrentViewPos]
-        val viewNextB = getNextView(mCurrentViewPos)
-        val viewAEnd : Float
-        val viewBStart : Float
-        val viewX = layoutParams.width.toFloat()
+    private suspend fun launchMoveXAnimation(isDelay: Boolean) {
+        if(isDelay) delay(mResidenceTime)
+        return suspendCancellableCoroutine<Unit> { continuation ->
+            mViewAnimatorSet?.cancel()
+            mViewAnimatorSet = AnimatorSet()
+            val viewCurrentA = mCacheViews[mCurrentViewPos]
+            val viewNextB = getNextView(mCurrentViewPos)
+            val viewAEnd : Float
+            val viewBStart : Float
+            val viewX = layoutParams.width.toFloat()
 
-        when(mAnimationLeft) {
-            true -> {
-                viewAEnd = -viewX
-                viewBStart = viewX
-                if (viewNextB.translationX <= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
-                    viewCurrentA.translationX = 0f
-                    viewNextB.translationX = viewBStart
-                } else {
-                    viewCurrentA.translationX = 0f
-                    viewNextB.translationX = viewBStart
-                }
-            }
-            false -> {
-                viewAEnd = viewX
-                viewBStart = -viewX
-                if (viewNextB.translationX >= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
-                    viewCurrentA.translationX = 0f
-                    viewNextB.translationX = viewBStart
-                } else {
-                    viewCurrentA.translationX = 0f
-                    viewNextB.translationX = viewBStart
-                }
-            }
-        }
-
-        val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA, "translationX", viewCurrentA.translationX , viewAEnd)
-        val viewAnimationB = ObjectAnimator.ofFloat(viewNextB, "translationX", viewNextB.translationX, 0f)
-        mViewAnimatorSet?.let { animatorSet ->
-            animatorSet.duration = mCurrentDuration
-            animatorSet.interpolator = LinearInterpolator()
-            animatorSet.playTogether(viewAnimationA, viewAnimationB)
-            animatorSet.addListener(object : Animator.AnimatorListener {
-                override fun onAnimationStart(animation: Animator) {
-                    if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
-                    if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
-                    mCurrentDuration = mAnimationDuration
-                    updateViewPosition()
-                    updateTextListPosition()
-                }
-                override fun onAnimationEnd(animation: Animator) {
-                    if (!continuation.isCompleted) continuation.resume(Unit)
-                }
-                override fun onAnimationCancel(animation: Animator) {
-                    if (mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
-                        mCurrentDuration = animatorSet.duration - animatorSet.currentPlayTime
+            when(mAnimationLeft) {
+                true -> {
+                    viewAEnd = -viewX
+                    viewBStart = viewX
+                    if (viewNextB.translationX <= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
+                        viewCurrentA.translationX = 0f
+                        viewNextB.translationX = viewBStart
+                    } else {
+                        viewCurrentA.translationX = 0f
+                        viewNextB.translationX = viewBStart
                     }
                 }
-                override fun onAnimationRepeat(animation: Animator) {}
-            })
-            animatorSet.start()
+                false -> {
+                    viewAEnd = viewX
+                    viewBStart = -viewX
+                    if (viewNextB.translationX >= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
+                        viewCurrentA.translationX = 0f
+                        viewNextB.translationX = viewBStart
+                    } else {
+                        viewCurrentA.translationX = 0f
+                        viewNextB.translationX = viewBStart
+                    }
+                }
+            }
+
+            val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA, "translationX", viewCurrentA.translationX , viewAEnd)
+            val viewAnimationB = ObjectAnimator.ofFloat(viewNextB, "translationX", viewNextB.translationX, 0f)
+            mViewAnimatorSet?.let { animatorSet ->
+                animatorSet.duration = mCurrentDuration
+                animatorSet.interpolator = LinearInterpolator()
+                animatorSet.playTogether(viewAnimationA, viewAnimationB)
+                animatorSet.addListener(object : Animator.AnimatorListener {
+                    override fun onAnimationStart(animation: Animator) {
+                        if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
+                        if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
+                        mCurrentDuration = mAnimationDuration
+                        updateViewPosition()
+                        updateTextListPosition()
+                        "Update ----> @@@$mMultipleLinePos".log()
+                    }
+                    override fun onAnimationEnd(animation: Animator) {
+                        if (!continuation.isCompleted) continuation.resume(Unit)
+                    }
+                    override fun onAnimationCancel(animation: Animator) {
+                        if (mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
+                            mCurrentDuration = animatorSet.duration - animatorSet.currentPlayTime
+                        }
+                        whenAnimationCancel()
+                    }
+                    override fun onAnimationRepeat(animation: Animator) {}
+                })
+                animatorSet.start()
+            }
         }
     }
 
@@ -808,68 +794,81 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-01 09:51:11 周三 上午
      * @author crowforkotlin
      */
-    private suspend fun launchMoveYAnimation() = suspendCancellableCoroutine<Unit> { continuation ->
-        mViewAnimatorSet?.cancel()
-        mViewAnimatorSet = AnimatorSet()
-        val viewCurrentA = mCacheViews[mCurrentViewPos]
-        val viewNextB = getNextView(mCurrentViewPos)
-        val viewAEnd : Float
-        val viewBStart : Float
-        val viewY = layoutParams.height.toFloat()
+    private suspend fun launchMoveYAnimation(isDelay: Boolean)  {
+        if(isDelay) delay(mResidenceTime)
+        return suspendCancellableCoroutine<Unit> { continuation ->
+            mViewAnimatorSet?.cancel()
+            mViewAnimatorSet = AnimatorSet()
+            val viewCurrentA = mCacheViews[mCurrentViewPos]
+            val viewNextB = getNextView(mCurrentViewPos)
+            val viewAEnd: Float
+            val viewBStart: Float
+            val viewY = layoutParams.height.toFloat()
 
-        when(mAnimationTop) {
-            true -> {
-                viewAEnd = -viewY
-                viewBStart = viewY
-                if (viewNextB.translationY <= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_RESTART) {
-                    viewCurrentA.translationY = 0f
-                    viewNextB.translationY = viewBStart
-                } else if(viewNextB.translationY == 0f) {
-                    viewCurrentA.translationY = 0f
-                    viewNextB.translationY = viewBStart
-                }
-            }
-            false -> {
-                viewAEnd = viewY
-                viewBStart = -viewY
-                if (viewNextB.translationY >= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_RESTART) {
-                    viewCurrentA.translationY = 0f
-                    viewNextB.translationY = viewBStart
-                } else if(viewNextB.translationY == 0f || viewNextB.translationY == viewAEnd) {
-                    viewCurrentA.translationY = 0f
-                    viewNextB.translationY = viewBStart
-                }
-            }
-        }
-
-        val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA, "translationY", viewCurrentA.translationY, viewAEnd)
-        val viewAnimationB = ObjectAnimator.ofFloat(viewNextB, "translationY", viewNextB.translationY, 0f)
-        mViewAnimatorSet?.let { animatorSet ->
-            animatorSet.duration = mCurrentDuration
-            animatorSet.interpolator = LinearInterpolator()
-            animatorSet.playTogether(viewAnimationA, viewAnimationB)
-            animatorSet.addListener(object : Animator.AnimatorListener {
-                override fun onAnimationStart(animation: Animator) {
-                    if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
-                    if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
-                    mCurrentDuration = mAnimationDuration
-                    updateViewPosition()
-                    updateTextListPosition()
-                }
-                override fun onAnimationEnd(animation: Animator) {
-                    if (!continuation.isCompleted) {
-                        continuation.resume(Unit)
+            when (mAnimationTop) {
+                true -> {
+                    viewAEnd = -viewY
+                    viewBStart = viewY
+                    if (viewNextB.translationY <= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_RESTART) {
+                        viewCurrentA.translationY = 0f
+                        viewNextB.translationY = viewBStart
+                    } else if (viewNextB.translationY == 0f) {
+                        viewCurrentA.translationY = 0f
+                        viewNextB.translationY = viewBStart
                     }
                 }
-                override fun onAnimationCancel(animation: Animator) {
-                    if (mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
-                        mCurrentDuration = animatorSet.duration - animatorSet.currentPlayTime
+
+                false -> {
+                    viewAEnd = viewY
+                    viewBStart = -viewY
+                    if (viewNextB.translationY >= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_RESTART) {
+                        viewCurrentA.translationY = 0f
+                        viewNextB.translationY = viewBStart
+                    } else if (viewNextB.translationY == 0f || viewNextB.translationY == viewAEnd) {
+                        viewCurrentA.translationY = 0f
+                        viewNextB.translationY = viewBStart
                     }
-                    whenAnimationCancel()
                 }
-                override fun onAnimationRepeat(animation: Animator) {}
-            })
-            animatorSet.start()
+            }
+
+            val viewAnimationA = ObjectAnimator.ofFloat(
+                viewCurrentA,
+                "translationY",
+                viewCurrentA.translationY,
+                viewAEnd
+            )
+            val viewAnimationB =
+                ObjectAnimator.ofFloat(viewNextB, "translationY", viewNextB.translationY, 0f)
+            mViewAnimatorSet?.let { animatorSet ->
+                animatorSet.duration = mCurrentDuration
+                animatorSet.interpolator = LinearInterpolator()
+                animatorSet.playTogether(viewAnimationA, viewAnimationB)
+                animatorSet.addListener(object : Animator.AnimatorListener {
+                    override fun onAnimationStart(animation: Animator) {
+                        if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
+                        if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
+                        mCurrentDuration = mAnimationDuration
+                        updateViewPosition()
+                        updateTextListPosition()
+                    }
+
+                    override fun onAnimationEnd(animation: Animator) {
+                        if (!continuation.isCompleted) {
+                            continuation.resume(Unit)
+                        }
+                    }
+
+                    override fun onAnimationCancel(animation: Animator) {
+                        if (mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
+                            mCurrentDuration = animatorSet.duration - animatorSet.currentPlayTime
+                        }
+                        whenAnimationCancel()
+                    }
+
+                    override fun onAnimationRepeat(animation: Animator) {}
+                })
+                animatorSet.start()
+            }
         }
     }
 
@@ -877,40 +876,50 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 淡入淡出动画
      *
      * ● 2023-11-02 17:24:05 周四 下午
-     * @param sync 是否同步
+     * @param isSync 是否同步
      * @author crowforkotlin
      */
-    private suspend fun launchFadeAnimation(sync: Boolean) = suspendCancellableCoroutine<Unit> { continuation ->
-        mViewAnimatorSet?.cancel()
-        mViewAnimatorSet = AnimatorSet()
-        val viewCurrentA = mCacheViews[mCurrentViewPos]
-        val viewNextB = getNextView(mCurrentViewPos)
-        val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA, "alpha", 1f , 0f)
-        val viewAnimationB = ObjectAnimator.ofFloat(viewNextB, "alpha", 0f, 1f)
-        mViewAnimatorSet?.let { animatorSet ->
-            animatorSet.duration = mAnimationDuration
-            animatorSet.interpolator = LinearInterpolator()
-            if (sync) { animatorSet.playSequentially(viewAnimationA, viewAnimationB) }
-            else { animatorSet.playTogether(viewAnimationA, viewAnimationB) }
-            animatorSet.addListener(object : Animator.AnimatorListener {
-                override fun onAnimationStart(animation: Animator) {
-                    if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
-                    if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
-                    viewNextB.alpha = 0f
-                    viewCurrentA.translationX = 0f
-                    viewCurrentA.translationY = 0f
-                    viewNextB.translationX = 0f
-                    viewNextB.translationY = 0f
-                    updateViewPosition()
-                    updateTextListPosition()
+    private suspend fun launchFadeAnimation(isDelay: Boolean, isSync: Boolean) {
+        if(isDelay) delay(mResidenceTime)
+        return suspendCancellableCoroutine<Unit> { continuation ->
+            mViewAnimatorSet?.cancel()
+            mViewAnimatorSet = AnimatorSet()
+            val viewCurrentA = mCacheViews[mCurrentViewPos]
+            val viewNextB = getNextView(mCurrentViewPos)
+            val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA, "alpha", 1f, 0f)
+            val viewAnimationB = ObjectAnimator.ofFloat(viewNextB, "alpha", 0f, 1f)
+            mViewAnimatorSet?.let { animatorSet ->
+                animatorSet.duration = mAnimationDuration
+                animatorSet.interpolator = LinearInterpolator()
+                if (isSync) {
+                    animatorSet.playSequentially(viewAnimationA, viewAnimationB)
+                } else {
+                    animatorSet.playTogether(viewAnimationA, viewAnimationB)
                 }
-                override fun onAnimationEnd(animation: Animator) {
-                    if (!continuation.isCompleted) { continuation.resume(Unit) }
-                }
-                override fun onAnimationCancel(animation: Animator) {}
-                override fun onAnimationRepeat(animation: Animator) {}
-            })
-            animatorSet.start()
+                animatorSet.addListener(object : Animator.AnimatorListener {
+                    override fun onAnimationStart(animation: Animator) {
+                        if (viewCurrentA.visibility == INVISIBLE) viewCurrentA.visibility = VISIBLE
+                        if (viewNextB.visibility == INVISIBLE) viewNextB.visibility = VISIBLE
+                        viewNextB.alpha = 0f
+                        viewCurrentA.translationX = 0f
+                        viewCurrentA.translationY = 0f
+                        viewNextB.translationX = 0f
+                        viewNextB.translationY = 0f
+                        updateViewPosition()
+                        updateTextListPosition()
+                    }
+
+                    override fun onAnimationEnd(animation: Animator) {
+                        if (!continuation.isCompleted) {
+                            continuation.resume(Unit)
+                        }
+                    }
+
+                    override fun onAnimationCancel(animation: Animator) {}
+                    override fun onAnimationRepeat(animation: Animator) {}
+                })
+                animatorSet.start()
+            }
         }
     }
 
@@ -926,10 +935,22 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
         } else {
             mCurrentViewPos --
         }
-        if (mListPosition == 0) {
-            mListPosition = mList.size - 1
+        if (mMultipleLineEnable) {
+            if (mMultipleLinePos == 0) {
+                val textMaxLine = (measuredHeight / getTextHeight(mTextPaint.fontMetrics)).toInt()
+                val textListSize = mList.size
+                var textTotalCount: Int = textListSize / textMaxLine
+                if (textListSize  % textMaxLine != 0) { textTotalCount ++ }
+                mMultipleLinePos = textTotalCount - 1
+            } else {
+                mMultipleLinePos --
+            }
         } else {
-            mListPosition --
+            if (mListPosition == 0) {
+                mListPosition = mList.size - 1
+            } else {
+                mListPosition --
+            }
         }
     }
 
@@ -962,14 +983,23 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * @author crowforkotlin
      */
     fun applyOption() {
-        runCatching {
-            mViewScope.launch {
+        mViewScope.launch {
+            runCatching {
                 if (mCacheViews.isEmpty()) return@launch
                 mLastAnimation = -1
-                onNotifyLayoutUpdate()
-                onNotifyViewUpdate()
+
+                mTextPaint.color = mFontColor
+                mTextPaint.isAntiAlias = mEnableAntiAlias
+                mTextPaint.textSize = mFontSize
+
+                onUpdateTextLists(getTextLists(mText))
+                onUpdatePosOrView(updateAll = true)
+                onUpdateIfResetAnimation()
+
+//                onNotifyLayoutUpdate()
+//                onNotifyViewUpdate(updateAll = true)
             }
-        }
             .onFailure { cause -> "● StaticMarLayout apply option failure : ${cause.stackTraceToString()}".log() }
+        }
     }
 }
