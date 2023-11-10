@@ -79,27 +79,31 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createStaticMarView2(x: Float, y: Float, width: Int, height: Int): StaticTextLayout {
-//        val text = "12345678988U！"
-        val text = "好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！qweiqx@%!xTIQNAQWENXOQWEM#&IA我阿斯顿维拉4i9992188nnaduqwuzxucqwbdq!@$@#@snajaiw"
+        val text1 = "12345678988U4885255749923！"
+//        val text = "好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！qweiqx@%!xTIQNAQWENXOQWEM#&IA我阿斯顿维拉4i9992188nnaduqwuzxucqwbdq!@$@#@snajaiw"
+//        val text = "好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！qweiqx@%!xTIQNAQWENXOQWEM#&IA"
         val layout = StaticTextLayout(this)
         layout.x = x
         layout.y = y
         mBinding.root.addView(layout)
         layout.layoutParams = FrameLayout.LayoutParams(width,height)
-        layout.mMultipleLineEnable = true
-        layout.mGravity = StaticTextLayout.GRAVITY_CENTER
+        layout.mGravity = StaticTextLayout.GRAVITY_TOP_START
         layout.mEnableSingleTextAnimation = true
         layout.mResidenceTime = 1000
-        layout.mAnimationMode = StaticTextLayout.ANIMATION_MOVE_X
-        layout.mAnimationStrategy = StaticTextLayout.STRATEGY_ANIMATION_UPDATE_DEFAULT
+        layout.mAnimationMode = StaticTextLayout.ANIMATION_MOVE_Y
+        layout.mAnimationTop = false
+        layout.mUpdateStrategy = StaticTextLayout.STRATEGY_TEXT_UPDATE_LAZY
+        layout.mAnimationStrategy = StaticTextLayout.STRATEGY_ANIMATION_UPDATE_RESTART
         layout.mScrollSpeed = 10
-        layout.mText = text
+        layout.mText = text1
         lifecycleScope.launch {
-            delay(3500)
+/*            delay(4000)
             layout.mFontSize = 11f
             layout.mFontColor = Color.WHITE
-            layout.mEnableAntiAlias = true
-            layout.applyOption()
+            layout.mEnableAntiAlias = false
+            layout.mFontItalic = true
+            layout.mFontMonoSpace = true
+            layout.applyOption()*/
         }
         /*lifecycleScope.launch {
             delay(3000)

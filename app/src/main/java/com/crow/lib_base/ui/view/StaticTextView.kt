@@ -1,6 +1,4 @@
-@file:Suppress("MemberVisibilityCanBePrivate", "KotlinConstantConditions", "unused",
-    "SpellCheckingInspection"
-)
+@file:Suppress("MemberVisibilityCanBePrivate", "KotlinConstantConditions", "unused", "SpellCheckingInspection")
 
 package com.crow.lib_base.ui.view
 
@@ -11,7 +9,7 @@ import android.graphics.Paint
 import android.graphics.Paint.FontMetrics
 import android.graphics.Rect
 import android.view.View
-import androidx.annotation.IntRange
+import com.crow.base.ext.log
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.properties.Delegates
@@ -78,7 +76,6 @@ class StaticTextView(context: Context) : View(context), IMarExt {
      * ● 2023-10-31 15:24:43 周二 下午
      * @author crowforkotlin
      */
-    @get:IntRange(from = 1000, to = 1008)
     var mGravity: Int by Delegates.observable(StaticTextLayout.GRAVITY_TOP_START) { _, oldSize, newSize -> onVariableChanged(FLAG_REFRESH, oldSize, newSize) }
 
     /**
@@ -89,6 +86,12 @@ class StaticTextView(context: Context) : View(context), IMarExt {
      */
     var mMultiLineEnable: Boolean by Delegates.observable(false) { _, oldValue, newValue -> onVariableChanged(FLAG_REFRESH, oldValue, newValue) }
 
+    /**
+     * ● 设置硬件加速渲染
+     *
+     * ● 2023-11-10 15:16:42 周五 下午
+     * @author crowforkotlin
+     */
     init {
 
         // 设置View使用硬件加速渲染绘制， 不然Animation移动View会造成绘制的内容抖动
@@ -203,39 +206,35 @@ class StaticTextView(context: Context) : View(context), IMarExt {
     private inline fun drawCenterText(canvas: Canvas, text: Pair<String, Float>, textListSize: Int, onIniTextX: (Float) -> Unit) {
         if (mMultiLineEnable && textListSize > 1) {
             val fontMetrics = mTextPaint.fontMetrics
+            var listPos = mListPosition
             val textHeight = ceil(getTextHeight(fontMetrics))
             val screenHeightHalf = height shr 1
-            val maxLine = (height / textHeight).toInt()
-            val maxRow = if (textListSize > maxLine) maxLine else textListSize
-            val validRow = if (mListPosition > 0) abs(mList.size - mListPosition * maxRow) else maxRow
+            val maxRow = with((height / textHeight).toInt()) { if (textListSize > this) this else textListSize  }
+            var startPos = listPos * maxRow
+            if (startPos == textListSize) {
+                listPos --
+                startPos -= maxRow
+            }
+            val validRow = if (listPos > 0)  abs(textListSize - listPos * maxRow) else maxRow
             val halfValidRow = validRow shr 1
             val totalCount: Int
-            val topCount: Int
-            val bottomCount: Int
             if (validRow % 2 == 0) {
-                topCount = (screenHeightHalf / textHeight).toInt()
-                bottomCount = (screenHeightHalf / textHeight).toInt()
-                totalCount = topCount + bottomCount
+                totalCount = with((screenHeightHalf / textHeight).toInt()) { this + this }
                 mTextY = screenHeightHalf - fontMetrics.descent - textHeight * (halfValidRow - 1)
             } else {
-                val validSpace: Float = screenHeightHalf - (textHeight / 2)
-                topCount = (validSpace / textHeight).toInt()
-                bottomCount = (validSpace / textHeight).toInt()
-                totalCount = topCount + bottomCount + 1
-                mTextY = (screenHeightHalf + calculateBaselineOffsetY(fontMetrics)) - textHeight * if(validRow < 3) 0 else topCount
+                val halfCount = ((screenHeightHalf - (textHeight / 2)) / textHeight).toInt()
+                totalCount = with(halfCount) { this + this } + 1
+                mTextY = (screenHeightHalf + calculateBaselineOffsetY(fontMetrics)) - textHeight * if(validRow < 3) 0 else halfCount
             }
-            var startPos = mListPosition * totalCount
             repeat(totalCount) {
                 if (startPos < textListSize) {
                     val currentText = mList[startPos]
                     onIniTextX(currentText.second)
                     canvas.drawText(currentText.first, mTextX, mTextY, mTextPaint)
                     onRunDebug(canvas)
-                } else {
-                    return@repeat
+                    startPos ++
+                    mTextY += textHeight
                 }
-                startPos ++
-                mTextY += textHeight
             }
         } else {
             onIniTextX(text.second)

@@ -32,7 +32,7 @@ import kotlin.properties.Delegates
  * @author crowforkotlin
  * @formatter:on
  */
-class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
+class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
 
     /**
      * ● 静态区域
@@ -61,15 +61,10 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
         private const val MAX_STRING_LENGTH = 2 shl 9
 
         private const val FLAG_TEXT = 0x00
-        private const val FLAG_FONT_SIZE = 0x01
         private const val FLAG_CHILD_REFRESH = 0x03
         private const val FLAG_LAYOUT_REFRESH = 0x04
         private const val FLAG_SCROLL_SPEED = 0x05
-        private const val FLAG_GRAVITY = 0x06
-        private const val FLAG_MULTIPLE_LINE = 0x07
-        private const val FLAG_BACKGROUND_COLOR = 0x08
-        private const val FLAG_FONT_COLOR = 0x09
-        private const val FLAG_ANTI_ALIAS = 0x10
+        private const val FLAG_BACKGROUND_COLOR = 0x06
 
         const val ANIMATION_DEFAULT = 2000
         const val ANIMATION_MOVE_X = 2001
@@ -105,7 +100,6 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
          */
         const val STRATEGY_TEXT_UPDATE_LAZY = 0x01 shl 16
 
-
         /**
          * ● 重新加载更新策略：当重新绘制的时候是否重新执行动画
          *
@@ -121,7 +115,6 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
          * @author crowforkotlin
          */
         const val STRATEGY_ANIMATION_UPDATE_DEFAULT = 0x03 shl 16
-
     }
 
     /**
@@ -219,23 +212,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-03 18:19:24 周五 下午
      * @author crowforkotlin
      */
-    private var mMultipleLinePos: Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(FLAG_CHILD_REFRESH, oldPosition, newPosition)}
-
-    /**
-     * ● 文字大小 -- 设置后会触发重新绘制 FloatRange(from = 12.0, to = 768.0)
-     *
-     * ● 2023-10-31 14:03:04 周二 下午
-     * @author crowforkotlin
-     */
-    var mFontSize: Float by Delegates.observable(13f) { _, oldSize, newSize -> onVariableChanged(FLAG_FONT_SIZE, oldSize, newSize) }
-
-    /**
-     * ● 视图对齐方式 -- 上中下 IntRange(from = 1000, to = 1008)
-     *
-     * ● 2023-10-31 15:24:43 周二 下午
-     * @author crowforkotlin
-     */
-    var mGravity: Int by Delegates.observable(GRAVITY_TOP_START) { _, oldSize, newSize -> onVariableChanged(FLAG_GRAVITY, oldSize, newSize) }
+    private var mMultipleLinePos: Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(FLAG_CHILD_REFRESH, oldPosition, newPosition) }
 
     /**
      * ● 滚动速度 --- 设置滚动速度实际上是对动画持续时间进行设置 重写SET函数，实现滚动速度设置 对动画时间进行相对的设置，设置后会触发重新绘制 IntRange(from = 1, to = 15)
@@ -254,20 +231,36 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
     var mText: String by Delegates.observable("") { _, oldText, newText -> onVariableChanged(FLAG_TEXT, oldText, newText) }
 
     /**
+     * ● Layout的背景颜色
+     *
+     * ● 2023-11-09 09:47:58 周四 上午
+     * @author crowforkotlin
+     */
+    var mBackgroundColor: Int by Delegates.observable(Color.BLACK) { _, oldColor, newColor -> onVariableChanged(FLAG_BACKGROUND_COLOR, oldColor, newColor) }
+
+    /**
      * ● 是否开启换行
      *
      * ● 2023-10-31 17:31:20 周二 下午
      * @author crowforkotlin
      */
-    var mMultipleLineEnable: Boolean by Delegates.observable(false) { _, oldValue, newValue -> onVariableChanged(FLAG_MULTIPLE_LINE, oldValue, newValue) }
+    var mMultipleLineEnable: Boolean = false
 
     /**
-     * ● 背景颜色
+     * ● 文字大小 -- 设置后会触发重新绘制 FloatRange(from = 12.0, to = 768.0)
      *
-     * ● 2023-11-09 09:47:58 周四 上午
+     * ● 2023-10-31 14:03:04 周二 下午
      * @author crowforkotlin
      */
-    var mBackgroundColor: Int by Delegates.observable(Color.BLACK) { _, oldColor, newColor -> onVariableChanged(FLAG_BACKGROUND_COLOR, oldColor, newColor)}
+    var mFontSize: Float = 13f
+
+    /**
+     * ● 视图对齐方式 -- 上中下 IntRange(from = 1000, to = 1008)
+     *
+     * ● 2023-10-31 15:24:43 周二 下午
+     * @author crowforkotlin
+     */
+    var mGravity: Int = GRAVITY_TOP_START
 
     /**
      * ● 字体颜色
@@ -275,7 +268,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-09 09:47:58 周四 上午
      * @author crowforkotlin
      */
-    var mFontColor: Int by Delegates.observable(Color.RED) { _, oldColor, newColor -> onVariableChanged(FLAG_FONT_COLOR, oldColor, newColor)}
+    var mFontColor: Int = Color.RED
 
     /**
      * ● 是否开启抗锯齿
@@ -283,7 +276,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-09 14:42:36 周四 下午
      * @author crowforkotlin
      */
-    var mEnableAntiAlias: Boolean by Delegates.observable(false) { _, oldColor, newColor -> onVariableChanged(FLAG_ANTI_ALIAS, oldColor, newColor)}
+    var mEnableAntiAlias: Boolean = false
 
 
     /**
@@ -342,12 +335,48 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      */
     var mAnimationTop: Boolean = false
 
+    /**
+     * ● 字体粗体
+     *
+     * ● 2023-11-10 14:34:58 周五 下午
+     * @author crowforkotlin
+     */
+    var mFontBold: Boolean = false
+
+    /**
+     * ● 字体斜体
+     *
+     * ● 2023-11-10 14:35:09 周五 下午
+     * @author crowforkotlin
+     */
+    var mFontItalic: Boolean = false
+
+    /**
+     * ● 启用等宽字体MonoSpace
+     *
+     * ● 2023-11-10 14:42:01 周五 下午
+     * @author crowforkotlin
+     */
+    var mFontMonoSpace: Boolean = false
+
+    /**
+     * ● 初始化画笔
+     *
+     * ● 2023-11-10 14:35:22 周五 下午
+     * @author crowforkotlin
+     */
     init {
         mTextPaint.color = mFontColor
         mTextPaint.textSize = mFontSize
-        mTextPaint.typeface = Typeface.MONOSPACE
+        mTextPaint.typeface = if (mFontMonoSpace) Typeface.MONOSPACE else Typeface.DEFAULT
     }
 
+    /**
+     * ● 绘制背景
+     *
+     * ● 2023-11-10 14:35:37 周五 下午
+     * @author crowforkotlin
+     */
     override fun dispatchDraw(canvas: Canvas) {
         super.dispatchDraw(canvas)
         canvas.drawColor(mBackgroundColor, PorterDuff.Mode.DST_OVER)
@@ -399,19 +428,29 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
             FLAG_CHILD_REFRESH -> { onNotifyViewUpdate() }
             FLAG_TEXT -> {
                 val text = if (mText.length > MAX_STRING_LENGTH) { mText.substring(0, MAX_STRING_LENGTH) } else mText
+                var firstInit = false
                 onUpdateTextLists(getTextLists(text))
                 // 如果缓存View < 2个 则初始化缓存View
                 val currentCacheViewSize = mCacheViews.size
                 if (currentCacheViewSize < REQUIRED_CACHE_SIZE) {
                     val viewsToAdd = REQUIRED_CACHE_SIZE - currentCacheViewSize
+                    mTextPaint.apply {
+                        color = mFontColor
+                        isAntiAlias = mEnableAntiAlias
+                        textSize = mFontSize
+                        isFakeBoldText = mFontBold
+                        textSkewX = if (mFontItalic) -0.25f else 0f
+                        typeface = if (mFontMonoSpace) Typeface.MONOSPACE else Typeface.DEFAULT
+                    }
                     for (index in 0 until  viewsToAdd) {
                         mCacheViews.add(initStaticMarView())
                     }
+                    firstInit = true
                     if (DEBUG) {
                         mCacheViews.forEachIndexed { index, staticTextView -> staticTextView.tag = index }
                     }
                 }
-                onUpdatePosOrView()
+                onUpdatePosOrView(forceUpdate = firstInit)
                 onNotifyLayoutUpdate()
             }
             FLAG_SCROLL_SPEED -> {
@@ -424,15 +463,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
                 }
                 mCurrentDuration = mAnimationDuration
             }
-            FLAG_MULTIPLE_LINE -> {
-                mCacheViews.forEach {  view -> view.mMultiLineEnable = mMultipleLineEnable }
-            }
-            FLAG_GRAVITY -> {
-                mCacheViews.forEach {  view -> view.mGravity = mGravity }
-            }
             FLAG_BACKGROUND_COLOR -> { invalidate() }
-
-
         }
     }
 
@@ -461,11 +492,11 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * ● 2023-11-01 17:34:08 周三 下午
      * @author crowforkotlin
      */
-    private fun onUpdatePosOrView(updateAll: Boolean = false) {
+    private fun onUpdatePosOrView(updateAll: Boolean = false, forceUpdate: Boolean = false) {
         val size = mList.size
         when {
             size <= if (mMultipleLineEnable) mMultipleLinePos else mListPosition -> if (mMultipleLineEnable) mMultipleLinePos = 0 else mListPosition = size - 1
-            mUpdateStrategy == STRATEGY_TEXT_UPDATE_DEFAULT -> onNotifyViewUpdate(updateAll = updateAll)
+            mUpdateStrategy == STRATEGY_TEXT_UPDATE_DEFAULT || forceUpdate -> onNotifyViewUpdate(updateAll = updateAll)
         }
     }
 
@@ -501,7 +532,17 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
         var delay = isDelay
         mAnimationJob = mViewScope.launch(CoroutineExceptionHandler { _, throwable -> throwable.stackTraceToString().log() }) {
             while(true) {
-                if (isListSizeFitPage() && !mEnableSingleTextAnimation) return@launch
+                if (isListSizeFitPage() && !mEnableSingleTextAnimation) return@launch run {
+                    val viewCurrentA = mCacheViews[mCurrentViewPos]
+                    val viewNextB = getNextView(mCurrentViewPos)
+                    if (viewNextB.visibility == VISIBLE) viewNextB.visibility = INVISIBLE
+                    viewCurrentA.translationX = 0f
+                    viewCurrentA.translationY = 0f
+                    viewNextB.translationX = 0f
+                    viewNextB.translationY = 0f
+                    cancelAnimator()
+                    cancelAnimationJob()
+                }
                 when(mAnimationMode) {
                     ANIMATION_DEFAULT -> launchDefaultAnimation(isDelay = delay)
                     ANIMATION_MOVE_X -> launchMoveXAnimation(isDelay = delay)
@@ -556,7 +597,6 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
         val list : MutableList<Pair<String, Float>> = mList.toMutableList()
         viewCurrentA.mList = list
         if (mMultipleLineEnable) {
-            "mCurrentViewPos --------------> $mCurrentViewPos".log()
             viewCurrentA.mListPosition = mMultipleLinePos
         } else {
             viewCurrentA.mListPosition = mListPosition
@@ -770,7 +810,6 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
                         mCurrentDuration = mAnimationDuration
                         updateViewPosition()
                         updateTextListPosition()
-                        "Update ----> @@@$mMultipleLinePos".log()
                     }
                     override fun onAnimationEnd(animation: Animator) {
                         if (!continuation.isCompleted) continuation.resume(Unit)
@@ -809,36 +848,23 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
                 true -> {
                     viewAEnd = -viewY
                     viewBStart = viewY
-                    if (viewNextB.translationY <= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_RESTART) {
-                        viewCurrentA.translationY = 0f
-                        viewNextB.translationY = viewBStart
-                    } else if (viewNextB.translationY == 0f) {
+                    if (viewNextB.translationY <= 0f || viewNextB.translationY == viewAEnd) {
                         viewCurrentA.translationY = 0f
                         viewNextB.translationY = viewBStart
                     }
                 }
-
                 false -> {
                     viewAEnd = viewY
                     viewBStart = -viewY
-                    if (viewNextB.translationY >= 0f && mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_RESTART) {
-                        viewCurrentA.translationY = 0f
-                        viewNextB.translationY = viewBStart
-                    } else if (viewNextB.translationY == 0f || viewNextB.translationY == viewAEnd) {
+                    if (viewNextB.translationY >= 0f || viewNextB.translationY == viewAEnd) {
                         viewCurrentA.translationY = 0f
                         viewNextB.translationY = viewBStart
                     }
                 }
             }
 
-            val viewAnimationA = ObjectAnimator.ofFloat(
-                viewCurrentA,
-                "translationY",
-                viewCurrentA.translationY,
-                viewAEnd
-            )
-            val viewAnimationB =
-                ObjectAnimator.ofFloat(viewNextB, "translationY", viewNextB.translationY, 0f)
+            val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA, "translationY", viewCurrentA.translationY, viewAEnd)
+            val viewAnimationB = ObjectAnimator.ofFloat(viewNextB, "translationY", viewNextB.translationY, 0f)
             mViewAnimatorSet?.let { animatorSet ->
                 animatorSet.duration = mCurrentDuration
                 animatorSet.interpolator = LinearInterpolator()
@@ -954,7 +980,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
         }
     }
 
-    /**
+     /**
      * ● 取消动画任务
      *
      * ● 2023-11-02 17:24:00 周四 下午
@@ -983,23 +1009,23 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt  {
      * @author crowforkotlin
      */
     fun applyOption() {
-        mViewScope.launch {
-            runCatching {
-                if (mCacheViews.isEmpty()) return@launch
-                mLastAnimation = -1
-
-                mTextPaint.color = mFontColor
-                mTextPaint.isAntiAlias = mEnableAntiAlias
-                mTextPaint.textSize = mFontSize
-
-                onUpdateTextLists(getTextLists(mText))
-                onUpdatePosOrView(updateAll = true)
-                onUpdateIfResetAnimation()
-
-//                onNotifyLayoutUpdate()
-//                onNotifyViewUpdate(updateAll = true)
+        if (mCacheViews.isNotEmpty()) {
+            mLastAnimation = -1
+            mTextPaint.apply {
+                color = mFontColor
+                isAntiAlias = mEnableAntiAlias
+                textSize = mFontSize
+                isFakeBoldText = mFontBold
+                textSkewX = if (mFontItalic) -0.25f else 0f
+                typeface = if (mFontMonoSpace) Typeface.MONOSPACE else Typeface.DEFAULT
             }
-            .onFailure { cause -> "● StaticMarLayout apply option failure : ${cause.stackTraceToString()}".log() }
+            mCacheViews.forEach {  view ->
+                view.mGravity = mGravity
+                view.mMultiLineEnable = mMultipleLineEnable
+            }
+            onUpdateTextLists(getTextLists(mText))
+            onUpdatePosOrView(updateAll = true)
+            onUpdateIfResetAnimation()
         }
     }
 }
