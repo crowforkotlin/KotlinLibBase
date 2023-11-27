@@ -8,10 +8,11 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Paint.FontMetrics
 import android.graphics.Rect
+import android.text.TextPaint
 import android.view.View
-import com.crow.base.ext.log
 import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.min
 import kotlin.properties.Delegates
 
 /**
@@ -35,7 +36,7 @@ class StaticTextView(context: Context) : View(context), IMarExt {
      * ● 2023-11-03 15:27:29 周五 下午
      * @author crowforkotlin
      */
-    lateinit var mTextPaint : Paint
+    lateinit var mTextPaint : TextPaint
 
     /**
      * ● 文本X坐标
@@ -205,34 +206,30 @@ class StaticTextView(context: Context) : View(context), IMarExt {
      */
     private inline fun drawCenterText(canvas: Canvas, text: Pair<String, Float>, textListSize: Int, onIniTextX: (Float) -> Unit) {
         if (mMultiLineEnable && textListSize > 1) {
-            val fontMetrics = mTextPaint.fontMetrics
-            var listPos = mListPosition
-            val textHeight = ceil(getTextHeight(fontMetrics))
             val screenHeightHalf = height shr 1
-            val maxRow = with((height / textHeight).toInt()) { if (textListSize > this) this else textListSize  }
-            var startPos = listPos * maxRow
-            if (startPos == textListSize) {
-                listPos --
-                startPos -= maxRow
-            }
-            val validRow = if (listPos > 0)  abs(textListSize - listPos * maxRow) else maxRow
-            val halfValidRow = validRow shr 1
-            val totalCount: Int
+            val fontMetrics = mTextPaint.fontMetrics
+            val textHeight = ceil(getTextHeight(fontMetrics))
+            val maxRow = min((height / textHeight).toInt(), textListSize)
+            var listStartPos = with(mListPosition * maxRow) { if (this == textListSize) this - maxRow else this }
+            val validRow = if (listStartPos + maxRow <= textListSize) maxRow else textListSize - listStartPos
+            val halfCount = ((screenHeightHalf - (textHeight / 2)) / textHeight).toInt()
+            val baseLineOffsetY = calculateBaselineOffsetY(fontMetrics)
+            val drawStartPointTextHeight = textHeight * if(validRow < 3) 0 else halfCount
+            val repeatTotalCount: Int
             if (validRow % 2 == 0) {
-                totalCount = with((screenHeightHalf / textHeight).toInt()) { this + this }
-                mTextY = screenHeightHalf - fontMetrics.descent - textHeight * (halfValidRow - 1)
+                repeatTotalCount = (screenHeightHalf / textHeight).toInt() shl 1
+                mTextY = screenHeightHalf - baseLineOffsetY - drawStartPointTextHeight
             } else {
-                val halfCount = ((screenHeightHalf - (textHeight / 2)) / textHeight).toInt()
-                totalCount = with(halfCount) { this + this } + 1
-                mTextY = (screenHeightHalf + calculateBaselineOffsetY(fontMetrics)) - textHeight * if(validRow < 3) 0 else halfCount
+                repeatTotalCount = halfCount shl 1 + 1
+                mTextY = screenHeightHalf + baseLineOffsetY - drawStartPointTextHeight
             }
-            repeat(totalCount) {
-                if (startPos < textListSize) {
-                    val currentText = mList[startPos]
+            repeat(repeatTotalCount) {
+                if (listStartPos < textListSize) {
+                    val currentText = mList[listStartPos]
                     onIniTextX(currentText.second)
                     canvas.drawText(currentText.first, mTextX, mTextY, mTextPaint)
                     onRunDebug(canvas)
-                    startPos ++
+                    listStartPos ++
                     mTextY += textHeight
                 }
             }

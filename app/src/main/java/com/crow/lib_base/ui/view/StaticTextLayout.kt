@@ -1,4 +1,6 @@
-@file:Suppress("unused", "SpellCheckingInspection", "MemberVisibilityCanBePrivate", "NewApi")
+@file:Suppress("unused", "SpellCheckingInspection", "MemberVisibilityCanBePrivate", "NewApi",
+    "UNUSED_PARAMETER"
+)
 
 package com.crow.lib_base.ui.view
 
@@ -7,11 +9,9 @@ import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.content.Context
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.PorterDuff
 import android.graphics.Typeface
+import android.text.TextPaint
 import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import com.crow.base.ext.log
@@ -123,7 +123,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-11-01 09:51:41 周三 上午
      * @author crowforkotlin
      */
-    private val mTextPaint : Paint = Paint()
+    private val mTextPaint : TextPaint = TextPaint()
 
     /**
      * ● 文本列表 -- 存储屏幕上可显示的字符串集合 实现原理是 动态计算字符串宽度和 视图View做判断
@@ -252,7 +252,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-10-31 14:03:04 周二 下午
      * @author crowforkotlin
      */
-    var mFontSize: Float = 13f
+    var mFontSize: Float = 12f
 
     /**
      * ● 视图对齐方式 -- 上中下 IntRange(from = 1000, to = 1008)
@@ -557,6 +557,8 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
         val viewNextB = getNextView(pos)
         viewCurrentA.translationX = 0f
         viewNextB.translationX = 0f
+        viewCurrentA.translationY = 0f
+        viewNextB.translationY = 0f
         viewCurrentA.visibility = VISIBLE
         viewNextB.visibility = INVISIBLE
     }
@@ -694,7 +696,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      */
     private suspend fun launchCenterAnimation(isDelay: Boolean) {
         if(isDelay) delay(mResidenceTime)
-        return suspendCancellableCoroutine<Unit> { continuation ->
+        return suspendCancellableCoroutine { continuation ->
             mViewAnimatorSet?.cancel()
             mViewAnimatorSet = AnimatorSet()
             val viewCurrentA = mCacheViews[mCurrentViewPos]
@@ -753,7 +755,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      */
     private suspend fun launchMoveXAnimation(isDelay: Boolean) {
         if(isDelay) delay(mResidenceTime)
-        return suspendCancellableCoroutine<Unit> { continuation ->
+        return suspendCancellableCoroutine { continuation ->
             mViewAnimatorSet?.cancel()
             mViewAnimatorSet = AnimatorSet()
             val viewCurrentA = mCacheViews[mCurrentViewPos]
@@ -825,7 +827,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      */
     private suspend fun launchMoveYAnimation(isDelay: Boolean)  {
         if(isDelay) delay(mResidenceTime)
-        return suspendCancellableCoroutine<Unit> { continuation ->
+        return suspendCancellableCoroutine { continuation ->
             mViewAnimatorSet?.cancel()
             mViewAnimatorSet = AnimatorSet()
             val viewCurrentA = mCacheViews[mCurrentViewPos]
@@ -897,7 +899,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      */
     private suspend fun launchFadeAnimation(isDelay: Boolean, isSync: Boolean) {
         if(isDelay) delay(mResidenceTime)
-        return suspendCancellableCoroutine<Unit> { continuation ->
+        return suspendCancellableCoroutine { continuation ->
             mViewAnimatorSet?.cancel()
             mViewAnimatorSet = AnimatorSet()
             val viewCurrentA = mCacheViews[mCurrentViewPos]
@@ -970,7 +972,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
         }
     }
 
-    /**
+     /**
      * ● 取消动画任务
      *
      * ● 2023-11-02 17:24:00 周四 下午
