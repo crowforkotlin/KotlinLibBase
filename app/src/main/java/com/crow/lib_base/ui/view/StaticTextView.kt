@@ -284,17 +284,21 @@ class StaticTextView(context: Context) : View(context), IMarExt {
         // DEBUG 模式
         if (StaticTextLayout.DEBUG) {
             val paintColor = mTextPaint.color
-            // 绘制2条参考线
+
+            // 绘制中线
             mTextPaint.color = Color.RED
             canvas.drawLine(0f, (height / 2).toFloat(), width.toFloat(), (height / 2).toFloat(), mTextPaint)
 
+            // 绘制底部线
             mTextPaint.color = Color.YELLOW
             canvas.drawLine(0f, mTextY, width.toFloat(), mTextY, mTextPaint)
 
+            // 绘制基线
             mTextPaint.color = Color.GREEN
             val ascentY = mTextY - abs(mTextPaint.fontMetrics.ascent)
             canvas.drawLine(0f, ascentY, width.toFloat(), ascentY, mTextPaint)
 
+            // 蓝框范围
             mTextPaint.color = Color.BLUE
             mTextPaint.style = Paint.Style.STROKE
             canvas.drawRect(0f, 0f, layoutParams.width.toFloat(), layoutParams.height.toFloat(), mTextPaint)
