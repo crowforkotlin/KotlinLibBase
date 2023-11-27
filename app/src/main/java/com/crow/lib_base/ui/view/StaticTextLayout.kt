@@ -308,7 +308,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-11-02 17:13:40 周四 下午
      * @author crowforkotlin
      */
-    var mEnableSingleTextAnimation: Boolean = false
+    var mEnableSingleTextAnimation: Boolean = true
 
     /**
      * ● 停留时间 静止时生效
