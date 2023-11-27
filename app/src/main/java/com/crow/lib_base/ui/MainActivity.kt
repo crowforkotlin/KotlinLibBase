@@ -2,6 +2,7 @@ package com.crow.lib_base.ui
 
 import android.graphics.Color
 import android.os.Bundle
+import android.webkit.WebSettings
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -17,16 +18,16 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(mBinding.root)
-/*        mBinding.button.setOnClickListener {
-            mBinding.marklayout.activeMask(MaskAnimation.COLLAPSED) {
-                mBinding.marklayout.setBackgroundColor(ContextCompat.getColor(this, R.color.black))
-            }
-        }
-        mBinding.button2.setOnClickListener {
-            mBinding.marklayout.activeMask(MaskAnimation.EXPANDED) {
-                mBinding.marklayout.setBackgroundColor(ContextCompat.getColor(this, R.color.white))
-            }
-        }*/
+        /*        mBinding.button.setOnClickListener {
+                    mBinding.marklayout.activeMask(MaskAnimation.COLLAPSED) {
+                        mBinding.marklayout.setBackgroundColor(ContextCompat.getColor(this, R.color.black))
+                    }
+                }
+                mBinding.button2.setOnClickListener {
+                    mBinding.marklayout.activeMask(MaskAnimation.EXPANDED) {
+                        mBinding.marklayout.setBackgroundColor(ContextCompat.getColor(this, R.color.white))
+                    }
+                }*/
         /*         val width = 128
                 val height = 64
                 val list = mutableListOf<StaticMarLayout>()
@@ -44,7 +45,22 @@ class MainActivity : AppCompatActivity() {
                         count++
                     }
                 }*/
-        createStaticMarView2(0f, 0f, 128, 64)
+        mBinding.webview.apply {
+            settings.let { ws ->
+
+                ws.setJavaScriptEnabled(true);
+                ws.setCacheMode(WebSettings.LOAD_NO_CACHE);
+                ws.setDatabaseEnabled(false);
+                ws.setDomStorageEnabled(true);
+                ws.setDefaultZoom(WebSettings.ZoomDensity.CLOSE);
+                ws.setUserAgentString("Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36");//加载网页版，不加载手机版
+            }
+            layoutParams.width = 256
+            layoutParams.height = 256
+            setInitialScale(0)
+            loadUrl("https://www.baidu.com")
+        }
+        //        createStaticMarView2(0f, 0f, 128, 64)
         /*val view = createStaticMarView2(0f, 0f, 128, 64)
         mBinding.button.setOnClickListener {
             view.mEnableSingleTextAnimation = false
@@ -53,19 +69,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createStaticMarView(x: Float, y: Float, width: Int, height: Int): StaticTextLayout {
-        val text = "123456789-ABCYPJI-!&*#(()-OWPXU啊这样-好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！！"
+        val text =
+            "123456789-ABCYPJI-!&*#(()-OWPXU啊这样-好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！！"
 //        val text = "好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！！"
         val layout = StaticTextLayout(this)
 
         layout.x = x
         layout.y = y
         mBinding.root.addView(layout)
-        layout.layoutParams = FrameLayout.LayoutParams(width,height)
+        layout.layoutParams = FrameLayout.LayoutParams(width, height)
         layout.mMultipleLineEnable = (0..2).random() != 1
-        layout.mGravity = (StaticTextLayout.GRAVITY_TOP_START..StaticTextLayout.GRAVITY_BOTTOM_END).random()
+        layout.mGravity =
+            (StaticTextLayout.GRAVITY_TOP_START..StaticTextLayout.GRAVITY_BOTTOM_END).random()
         layout.mEnableSingleTextAnimation = false
         layout.mResidenceTime = (0..3000).random().toLong()
-        layout.mAnimationMode = (StaticTextLayout.ANIMATION_DEFAULT..StaticTextLayout.ANIMATION_FADE_SYNC).random()
+        layout.mAnimationMode =
+            (StaticTextLayout.ANIMATION_DEFAULT..StaticTextLayout.ANIMATION_FADE_SYNC).random()
         layout.mAnimationStrategy = StaticTextLayout.STRATEGY_ANIMATION_UPDATE_DEFAULT
         layout.mScrollSpeed = 15
         layout.mText = text
@@ -78,7 +97,12 @@ class MainActivity : AppCompatActivity() {
         return layout
     }
 
-    private fun createStaticMarView2(x: Float, y: Float, width: Int, height: Int): StaticTextLayout {
+    private fun createStaticMarView2(
+        x: Float,
+        y: Float,
+        width: Int,
+        height: Int,
+    ): StaticTextLayout {
         val text1 = "12345678988U4885255749923！"
 //        val text = "好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！qweiqx@%!xTIQNAQWENXOQWEM#&IA我阿斯顿维拉4i9992188nnaduqwuzxucqwbdq!@$@#@snajaiw"
 //        val text = "好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！qweiqx@%!xTIQNAQWENXOQWEM#&IA"
@@ -86,7 +110,7 @@ class MainActivity : AppCompatActivity() {
         layout.x = x
         layout.y = y
         mBinding.root.addView(layout)
-        layout.layoutParams = FrameLayout.LayoutParams(width,height)
+        layout.layoutParams = FrameLayout.LayoutParams(width, height)
         layout.mGravity = StaticTextLayout.GRAVITY_TOP_START
         layout.mEnableSingleTextAnimation = true
         layout.mResidenceTime = 1000

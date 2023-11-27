@@ -278,7 +278,6 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      */
     var mEnableAntiAlias: Boolean = false
 
-
     /**
      * ● 动画模式（一般是默认）
      *
@@ -372,17 +371,6 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
     }
 
     /**
-     * ● 绘制背景
-     *
-     * ● 2023-11-10 14:35:37 周五 下午
-     * @author crowforkotlin
-     */
-    override fun dispatchDraw(canvas: Canvas) {
-        super.dispatchDraw(canvas)
-        canvas.drawColor(mBackgroundColor, PorterDuff.Mode.DST_OVER)
-    }
-
-    /**
      * ● 窗口分离
      *
      * ● 2023-10-31 18:11:26 周二 下午
@@ -463,7 +451,9 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
                 }
                 mCurrentDuration = mAnimationDuration
             }
-            FLAG_BACKGROUND_COLOR -> { invalidate() }
+            FLAG_BACKGROUND_COLOR -> {
+                setBackgroundColor(mBackgroundColor)
+            }
         }
     }
 
@@ -980,7 +970,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
         }
     }
 
-     /**
+    /**
      * ● 取消动画任务
      *
      * ● 2023-11-02 17:24:00 周四 下午
