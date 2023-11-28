@@ -220,7 +220,7 @@ class StaticTextView(context: Context) : View(context), IMarExt {
                 repeatTotalCount = (screenHeightHalf / textHeight).toInt() shl 1
                 mTextY = screenHeightHalf - baseLineOffsetY - drawStartPointTextHeight
             } else {
-                repeatTotalCount = halfCount shl 1 + 1
+                repeatTotalCount = (halfCount shl 1) + 1
                 mTextY = screenHeightHalf + baseLineOffsetY - drawStartPointTextHeight
             }
             repeat(repeatTotalCount) {

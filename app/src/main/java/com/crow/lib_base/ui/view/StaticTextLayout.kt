@@ -588,12 +588,20 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
         val viewCurrentA = mCacheViews[mCurrentViewPos]
         val list : MutableList<Pair<String, Float>> = mList.toMutableList()
         viewCurrentA.mList = list
-        if (mMultipleLineEnable) {
-            viewCurrentA.mListPosition = mMultipleLinePos
+        if (mText.isEmpty()) {
+            val viewNextB = getNextView(mCurrentViewPos)
+            viewNextB.mList = list
+            if (mMultipleLineEnable) {
+                viewCurrentA.mListPosition = mMultipleLinePos
+                viewNextB.mListPosition = mMultipleLinePos
+            } else {
+                viewCurrentA.mListPosition = mListPosition
+                viewNextB.mListPosition = mListPosition
+            }
         } else {
-            viewCurrentA.mListPosition = mListPosition
+            viewCurrentA.mListPosition = if (mMultipleLineEnable) mMultipleLinePos else mListPosition
+            if (updateAll) getNextView(mCurrentViewPos).invalidate()
         }
-        if (updateAll) getNextView(mCurrentViewPos).invalidate()
     }
 
     /**
@@ -1019,5 +1027,9 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
             onUpdatePosOrView(updateAll = true)
             onUpdateIfResetAnimation()
         }
+    }
+
+    fun getSnapshotView(): MutableList<StaticTextView> {
+        return mutableListOf(mCacheViews.first(), mCacheViews.last())
     }
 }

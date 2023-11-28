@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
                         count++
                     }
                 }*/
-        mBinding.webview.apply {
+        /*mBinding.webview.apply {
             settings.let { ws ->
 
                 ws.setJavaScriptEnabled(true);
@@ -59,8 +59,8 @@ class MainActivity : AppCompatActivity() {
             layoutParams.height = 256
             setInitialScale(0)
             loadUrl("https://www.baidu.com")
-        }
-        //        createStaticMarView2(0f, 0f, 128, 64)
+        }*/
+        createStaticMarView2(0f, 0f, 128, 64)
         /*val view = createStaticMarView2(0f, 0f, 128, 64)
         mBinding.button.setOnClickListener {
             view.mEnableSingleTextAnimation = false
@@ -103,7 +103,7 @@ class MainActivity : AppCompatActivity() {
         width: Int,
         height: Int,
     ): StaticTextLayout {
-        val text1 = "12345678988U4885255749923！"
+        val text1 = "CROW 自己写的一个静态文本组件，包含了静态文本布局 静态文本视图，手动计算文本位置 进行对应的绘制！代码量共计1300行左右，十分的简单！算是自定义View中的入门基础了！！！"
 //        val text = "好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！qweiqx@%!xTIQNAQWENXOQWEM#&IA我阿斯顿维拉4i9992188nnaduqwuzxucqwbdq!@$@#@snajaiw"
 //        val text = "好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！qweiqx@%!xTIQNAQWENXOQWEM#&IA"
         val layout = StaticTextLayout(this)
@@ -111,10 +111,12 @@ class MainActivity : AppCompatActivity() {
         layout.y = y
         mBinding.root.addView(layout)
         layout.layoutParams = FrameLayout.LayoutParams(width, height)
-        layout.mGravity = StaticTextLayout.GRAVITY_TOP_START
+        layout.mGravity = StaticTextLayout.GRAVITY_CENTER
         layout.mEnableSingleTextAnimation = true
+        layout.mMultipleLineEnable = true
         layout.mResidenceTime = 1000
-        layout.mAnimationMode = StaticTextLayout.ANIMATION_MOVE_Y
+        layout.mFontSize = 14f
+        layout.mAnimationMode = StaticTextLayout.ANIMATION_MOVE_X
         layout.mAnimationTop = false
         layout.mUpdateStrategy = StaticTextLayout.STRATEGY_TEXT_UPDATE_LAZY
         layout.mAnimationStrategy = StaticTextLayout.STRATEGY_ANIMATION_UPDATE_RESTART
