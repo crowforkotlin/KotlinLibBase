@@ -12,8 +12,12 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.text.TextPaint
+import android.view.ViewTreeObserver
 import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.doOnLayout
+import androidx.core.view.doOnPreDraw
 import com.crow.base.ext.log
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
@@ -196,7 +200,8 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-11-01 10:12:30 周三 上午
      * @author crowforkotlin
      */
-    private var mCurrentViewPos: Int by Delegates.observable(0) { _, oldViewPos, newViewPos -> onVariableChanged(FLAG_LAYOUT_REFRESH, oldViewPos, newViewPos) }
+    private var mCurrentViewPos: Int by Delegates.observable(0) { _, oldViewPos, newViewPos -> onVariableChanged(
+        FLAG_LAYOUT_REFRESH, oldViewPos, newViewPos) }
 
     /**
      * ● 文本列表位置 -- 设置后会触发重新绘制
@@ -204,7 +209,8 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-10-31 14:06:16 周二 下午
      * @author crowforkotlin
      */
-    private var mListPosition : Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(FLAG_CHILD_REFRESH, oldPosition, newPosition) }
+    private var mListPosition : Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(
+        FLAG_CHILD_REFRESH, oldPosition, newPosition) }
 
     /**
      * ● 多行文本（换行）位置
@@ -212,7 +218,8 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-11-03 18:19:24 周五 下午
      * @author crowforkotlin
      */
-    private var mMultipleLinePos: Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(FLAG_CHILD_REFRESH, oldPosition, newPosition) }
+    private var mMultipleLinePos: Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(
+        FLAG_CHILD_REFRESH, oldPosition, newPosition) }
 
     /**
      * ● 滚动速度 --- 设置滚动速度实际上是对动画持续时间进行设置 重写SET函数，实现滚动速度设置 对动画时间进行相对的设置，设置后会触发重新绘制 IntRange(from = 1, to = 15)
@@ -220,7 +227,8 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-10-31 13:59:53 周二 下午
      * @author crowforkotlin
      */
-    var mScrollSpeed: Int by Delegates.observable(1) { _, oldSpeed, newSpeed -> onVariableChanged(FLAG_SCROLL_SPEED, oldSpeed, newSpeed) }
+    var mScrollSpeed: Int by Delegates.observable(1) { _, oldSpeed, newSpeed -> onVariableChanged(
+        FLAG_SCROLL_SPEED, oldSpeed, newSpeed) }
 
     /**
      * ● 文本内容 -- 设置后会触发重新绘制
@@ -228,7 +236,14 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-10-31 14:03:56 周二 下午
      * @author crowforkotlin
      */
-    var mText: String by Delegates.observable("") { _, oldText, newText -> onVariableChanged(FLAG_TEXT, oldText, newText) }
+    var mText: String by Delegates.observable("") { _, oldText, newText ->
+        viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                viewTreeObserver.removeOnGlobalLayoutListener(this)
+                onVariableChanged(FLAG_TEXT, oldText, newText)
+            }
+        })
+    }
 
     /**
      * ● Layout的背景颜色
@@ -236,7 +251,8 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-11-09 09:47:58 周四 上午
      * @author crowforkotlin
      */
-    var mBackgroundColor: Int by Delegates.observable(Color.BLACK) { _, oldColor, newColor -> onVariableChanged(FLAG_BACKGROUND_COLOR, oldColor, newColor) }
+    var mBackgroundColor: Int by Delegates.observable(Color.BLACK) { _, oldColor, newColor -> onVariableChanged(
+        FLAG_BACKGROUND_COLOR, oldColor, newColor) }
 
     /**
      * ● 是否开启换行
@@ -619,7 +635,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
         originText.forEachIndexed { index, char ->
             val textWidth = mTextPaint.measureText(char.toString(), 0, 1)
             textStringWidth += textWidth
-            if (textStringWidth <= layoutParams.width) {
+            if (textStringWidth <= measuredWidth) {
                 textStringBuilder.append(char)
                 if (index == textMaxIndex) {
                     textList.add(textStringBuilder.toString() to textStringWidth)
@@ -770,7 +786,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
             val viewNextB = getNextView(mCurrentViewPos)
             val viewAEnd : Float
             val viewBStart : Float
-            val viewX = layoutParams.width.toFloat()
+            val viewX = measuredWidth.toFloat()
 
             when(mAnimationLeft) {
                 true -> {

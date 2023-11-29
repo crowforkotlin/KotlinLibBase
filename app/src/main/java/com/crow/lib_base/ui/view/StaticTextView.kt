@@ -7,13 +7,25 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Paint.FontMetrics
-import android.graphics.Rect
 import android.text.TextPaint
 import android.view.View
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.min
 import kotlin.properties.Delegates
+
+/*
+if (StaticTextLayout.DEBUG) {
+            val fontMetrics = mTextPaint.fontMetrics
+            val textHeight = getTextHeight(fontMetrics)
+
+            canvas.drawRect(Rect(0, 0, mTextPaint.measureText(tag.toString()).toInt(), textHeight.toInt()), Paint().apply { color = Color.GREEN })
+            canvas.drawText(tag.toString(), 0f, textHeight, mTextPaint)
+            canvas.drawLine(0f, height / 2f, width.toFloat(), height / 2f, Paint().apply {
+                color = Color.YELLOW
+            })
+        }
+* */
 
 /**
  * ● 静态文本组件
@@ -114,19 +126,8 @@ class StaticTextView(context: Context) : View(context), IMarExt {
         // 文本长度是否无效？
         val isLengthInvalid = mListPosition > textListSize - 1
 
-        // 画笔未初始化
-        if (!::mTextPaint.isInitialized || isLengthInvalid) return
-
-        if (StaticTextLayout.DEBUG) {
-            val fontMetrics = mTextPaint.fontMetrics
-            val textHeight = getTextHeight(fontMetrics)
-
-            canvas.drawRect(Rect(0, 0, mTextPaint.measureText(tag.toString()).toInt(), textHeight.toInt()), Paint().apply { color = Color.GREEN })
-            canvas.drawText(tag.toString(), 0f, textHeight, mTextPaint)
-            canvas.drawLine(0f, height / 2f, width.toFloat(), height / 2f, Paint().apply {
-                color = Color.YELLOW
-            })
-        }
+        // 画笔未初始化 长度是否无效 列表位置是否小于0
+        if (!::mTextPaint.isInitialized || isLengthInvalid || mListPosition < 0) return
 
         // 获取文本
         val text = if (isLengthInvalid) { mList.last() } else mList[mListPosition]
@@ -195,6 +196,7 @@ class StaticTextView(context: Context) : View(context), IMarExt {
             onIniTextX(text.second)
             val currentText = text.first
             canvas.drawText(currentText, 0, currentText.length, mTextX, mTextY, mTextPaint)
+            onRunDebug(canvas)
         }
     }
 
@@ -268,6 +270,7 @@ class StaticTextView(context: Context) : View(context), IMarExt {
                 mTextY -= textHeight
             }
         } else {
+            onIniTextX(text.second)
             val currentText = text.first
             canvas.drawText(currentText, 0, currentText.length, mTextX, mTextY, mTextPaint)
             onRunDebug(canvas)
@@ -318,11 +321,7 @@ class StaticTextView(context: Context) : View(context), IMarExt {
      * @author crowforkotlin
      */
     private fun calculateBaselineOffsetY(fontMetrics: FontMetrics): Float {
-
-        val ascent = fontMetrics.ascent
-        val descent = fontMetrics.descent
-
-        return -ascent / 2 - descent / 2
+        return abs(fontMetrics.ascent) / 2 - fontMetrics.descent / 2
     }
 
     /**

@@ -28,21 +28,13 @@ class MainActivity : AppCompatActivity() {
                         mBinding.marklayout.setBackgroundColor(ContextCompat.getColor(this, R.color.white))
                     }
                 }*/
-        /*         val width = 128
+//        createStaticMarView(0f,0f,128,64)
+                 /*val width = 128
                 val height = 64
-                val list = mutableListOf<StaticMarLayout>()
-               repeat(15) { x ->
-                    repeat(16) { y ->
+                val list = mutableListOf<StaticTextLayout>()
+               repeat(10) { x ->
+                    repeat(2) { y ->
                         list.add(createStaticMarView(width.toFloat() * x, height.toFloat() * y ,width, height))
-                    }
-                }
-                val text = "123456789-ABCYPJI-!&*#(()-OWPXU啊这样-好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！！"
-                lifecycleScope.launch {
-                    var count = 0
-                    while(true) {
-                        delay(25L)
-                        list.random().mText = "$text$count"
-                        count++
                     }
                 }*/
         /*mBinding.webview.apply {
@@ -60,7 +52,7 @@ class MainActivity : AppCompatActivity() {
             setInitialScale(0)
             loadUrl("https://www.baidu.com")
         }*/
-        createStaticMarView2(0f, 0f, 128, 64)
+        createStaticMarView2(0f, 0f, 2712, 1220)
         /*val view = createStaticMarView2(0f, 0f, 128, 64)
         mBinding.button.setOnClickListener {
             view.mEnableSingleTextAnimation = false
@@ -79,21 +71,13 @@ class MainActivity : AppCompatActivity() {
         mBinding.root.addView(layout)
         layout.layoutParams = FrameLayout.LayoutParams(width, height)
         layout.mMultipleLineEnable = (0..2).random() != 1
-        layout.mGravity =
-            (StaticTextLayout.GRAVITY_TOP_START..StaticTextLayout.GRAVITY_BOTTOM_END).random()
+        layout.mGravity = StaticTextLayout.GRAVITY_BOTTOM_CENTER
         layout.mEnableSingleTextAnimation = false
-        layout.mResidenceTime = (0..3000).random().toLong()
-        layout.mAnimationMode =
-            (StaticTextLayout.ANIMATION_DEFAULT..StaticTextLayout.ANIMATION_FADE_SYNC).random()
+        layout.mResidenceTime = 2000L
+        layout.mAnimationMode =StaticTextLayout.ANIMATION_MOVE_X
         layout.mAnimationStrategy = StaticTextLayout.STRATEGY_ANIMATION_UPDATE_DEFAULT
-        layout.mScrollSpeed = 15
+        layout.mScrollSpeed = 13
         layout.mText = text
-        /*lifecycleScope.launch {
-            delay(3000)
-            layout.mEnableSingleTextAnimation = false
-            layout.mMultipleLineEnable = false
-            layout.applyOption()
-        }*/
         return layout
     }
 
@@ -103,27 +87,30 @@ class MainActivity : AppCompatActivity() {
         width: Int,
         height: Int,
     ): StaticTextLayout {
-        val text1 = "CROW 自己写的一个静态文本组件，包含了静态文本布局 静态文本视图，手动计算文本位置 进行对应的绘制！代码量共计1300行左右，十分的简单！算是自定义View中的入门基础了！！！"
+//        val text1 = "静态文本"
+           val text1 = "CROW 自己写的一个静态文本组件，包含了静态文本布局 静态文本视图，手动计算文本位置 进行对应的绘制！代码量共计1300行左右，十分的简单！算是自定义View中的入门基础了！！！"
 //        val text = "好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！qweiqx@%!xTIQNAQWENXOQWEM#&IA我阿斯顿维拉4i9992188nnaduqwuzxucqwbdq!@$@#@snajaiw"
 //        val text = "好吧我觉得有BUG-确定吗？？？？我觉得是肯定的！！qweiqx@%!xTIQNAQWENXOQWEM#&IA"
         val layout = StaticTextLayout(this)
         layout.x = x
         layout.y = y
         mBinding.root.addView(layout)
-        layout.layoutParams = FrameLayout.LayoutParams(width, height)
+        layout.layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
         layout.mGravity = StaticTextLayout.GRAVITY_CENTER
         layout.mEnableSingleTextAnimation = true
-        layout.mMultipleLineEnable = true
-        layout.mResidenceTime = 1000
-        layout.mFontSize = 14f
+        layout.mMultipleLineEnable = false
+        layout.mResidenceTime = 3000
+        layout.mFontSize = 200f
         layout.mAnimationMode = StaticTextLayout.ANIMATION_MOVE_X
         layout.mAnimationTop = false
+        layout.mGravity = StaticTextLayout.GRAVITY_CENTER
+        layout.mEnableAntiAlias = true
         layout.mUpdateStrategy = StaticTextLayout.STRATEGY_TEXT_UPDATE_LAZY
         layout.mAnimationStrategy = StaticTextLayout.STRATEGY_ANIMATION_UPDATE_RESTART
-        layout.mScrollSpeed = 10
+        layout.mScrollSpeed = 14
         layout.mText = text1
         lifecycleScope.launch {
-/*            delay(4000)
+            /*            delay(4000)
             layout.mFontSize = 11f
             layout.mFontColor = Color.WHITE
             layout.mEnableAntiAlias = false
