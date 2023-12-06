@@ -1,6 +1,6 @@
 @file:Suppress("MemberVisibilityCanBePrivate", "KotlinConstantConditions", "unused", "SpellCheckingInspection")
 
-package com.crow.lib_base.ui.view
+package com.listen.x3player.kt.view.text
 
 import android.content.Context
 import android.graphics.Canvas
@@ -9,23 +9,12 @@ import android.graphics.Paint
 import android.graphics.Paint.FontMetrics
 import android.text.TextPaint
 import android.view.View
+import com.crow.lib_base.ui.view.IMarExt
+import com.crow.lib_base.ui.view.StaticTextLayout
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.min
 import kotlin.properties.Delegates
-
-/*
-if (StaticTextLayout.DEBUG) {
-            val fontMetrics = mTextPaint.fontMetrics
-            val textHeight = getTextHeight(fontMetrics)
-
-            canvas.drawRect(Rect(0, 0, mTextPaint.measureText(tag.toString()).toInt(), textHeight.toInt()), Paint().apply { color = Color.GREEN })
-            canvas.drawText(tag.toString(), 0f, textHeight, mTextPaint)
-            canvas.drawLine(0f, height / 2f, width.toFloat(), height / 2f, Paint().apply {
-                color = Color.YELLOW
-            })
-        }
-* */
 
 /**
  * ● 静态文本组件

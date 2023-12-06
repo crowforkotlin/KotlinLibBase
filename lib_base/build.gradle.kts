@@ -1,14 +1,7 @@
 plugins {
-
-    // 使用插件库
-    id(Plugins.android_library)
-
-    // KSP
-    id(Plugins.google_devtools_ksp) version Versions.ksp_version
-
-    // 使用 Kotlin语言开发Android 插件
-    kotlin(Plugins.kotlin_android)
-
+    alias(app.plugins.android.library)
+    alias(app.plugins.android.kotlin)
+    alias(app.plugins.android.ksp)
 }
 
 android {
@@ -19,14 +12,14 @@ android {
     // 配置构建功能相关的选项
     buildFeatures {
 
-        // 开启 构建配置
-        buildConfig = true
-
         // 开启 ViewBinding
         viewBinding = true
 
         // 开启 Compose
         compose = true
+
+        // 开启构建配置
+        buildConfig = true
     }
 
     defaultConfig {
@@ -36,7 +29,7 @@ android {
         buildConfigField("int", "VERSION_CODE", "${AppConfigs.version_code}")
 
         // 资源前缀（所有资源前缀必须添加）
-        resourcePrefix(AppConfigs.base_resource_prefix)
+        resourcePrefix = AppConfigs.base_resource_prefix
 
         // 编译的SDK版本
         compileSdk = AppConfigs.compile_sdk_version
@@ -49,9 +42,10 @@ android {
 
         ndk {
             // 设置支持的SO库架构 'x86', 'armeabi-v7a', 'x86_64', 'arm64-v8a'
-            abiFilters.add("armeabi")
+            abiFilters += listOf("armeabi", "x86", "x86_64", "armeabi-v7a", "armeabi-v8a")
         }
     }
+
 
     // Android Gradle 构建时的编译选项
     compileOptions {
@@ -86,7 +80,7 @@ android {
         jniLibs.srcDirs(AppConfigs.source_libs, AppConfigs.source_jniLibs)
     }
 
-    // Compose 配置
+    // 配置Compose 选项
     composeOptions {
 
         // 设置 Kotlin Compose 编译器扩展的版本 （Important）
@@ -99,75 +93,56 @@ dependencies {
     // 引入App下libs文件下的所有Jar包
     api(fileTree("dir" to "libs", "include" to "*.jar"))
 
-    // Android Component
-    api(Dependencies.androidx_core)
-    api(Dependencies.androidx_activity)
-    api(Dependencies.androidx_appcompat)
-    api(Dependencies.android_material)
-    api(Dependencies.androidx_constraintlayout)
-    api(Dependencies.androidx_lifecycle_ktx)
-    api(Dependencies.androidx_lifecycle_livedata_ktx)
-    api(Dependencies.androidx_lifecycle_service)
-    api(Dependencies.androidx_lifecycle_viewmodel_ktx)
-    api(Dependencies.androidx_datastore)
-    api(Dependencies.androidx_paging_runtime)
-    api(Dependencies.androidx_paging_runtime_ktx)
-    api(Dependencies.androidx_paging_common)
-    api(Dependencies.androidx_paging_common_ktx)
-    api(Dependencies.androidx_core_splash_screen)
-    api(Dependencies.androidx_room_runtime)
-    api(Dependencies.androidx_room_ktx)
+    api(app.androidx.core)
+    api(app.androidx.activity)
+    api(app.androidx.appcompat)
+    api(app.androidx.material)
+    api(app.androidx.constraintlayout)
+    api(app.androidx.lifecycle.service)
+    api(app.androidx.lifecycle.runtime.ktx)
+    api(app.androidx.lifecycle.livedata.ktx)
+    api(app.androidx.lifecycle.viewmodel.ktx)
+    api(app.androidx.datastore.preferences)
+    api(app.androidx.paging.runtime.ktx)
+    api(app.androidx.paging.common.ktx)
+    api(app.androidx.core.splashscreen)
+    api(app.androidx.room.ktx)
+    api(app.androidx.room.runtime)
 
-    // TestUnit
-    debugApi(Dependencies.glance)
-    debugApi(Dependencies.leakcanary) // 不支持在MinSdk 24以下的设备运行
-    testApi(Dependencies.junit_junit)
-    androidTestApi(Dependencies.androidx_test_junit_ktx)
-    androidTestApi(Dependencies.androidx_test_espresso)
+    api(libs.kotlin.coroutines.core)
+    api(libs.kotlin.stdlib)
+    api(libs.moshi)
+    api(libs.moshi.kotlin)
+    api(libs.okhttp)
+    api(libs.okhttp.logging.interceptor)
+    api(libs.retrofit)
+    api(libs.retrofit.converter.moshi)
+    api(libs.koin.android)
+    api(libs.logger)
+    api(libs.lottie)
+    api(libs.photoview)
+    api(libs.loading.button)
+    api(libs.luksiege.picture.selector)
+    api(libs.luksiege.ucrop)
+    api(libs.refresh.layout.kernel)
+    api(libs.refresh.header.material)
+    api(libs.glide)
+    api(libs.glide.okhttp3.integration) { exclude(group = "glide-parent") }
+    ksp(libs.glide.ksp)
 
-    // Kotlin Base Component
-    api(Dependencies.kotlinx_coroutines)
-    api(Dependencies.kotlinx_datetime)
-    api(Dependencies.kotlin_stdlib)
-    api(Dependencies.kotlin_reflect)
-
-
-    // Koin
-    api(Dependencies.android_koin)
-
-    // Network
-    api(Dependencies.retrofit)
-    api(Dependencies.retrofit_scalars)
-    api(Dependencies.retrofit_moshi)
-    api(Dependencies.okhttp)
-    api(Dependencies.okhttp_loggin)
-
-    // Json
-    api(Dependencies.moshi)
-    api(Dependencies.moshi_kotlin)
-    api(Dependencies.gson)
-    api(Dependencies.kotlin_serialization)
-
-    api(Dependencies.logger)
-    api(Dependencies.lottie)
-    api(Dependencies.photoview)
-    api(Dependencies.glide)
-    api(Dependencies.glide_integration) { exclude(group = "glide-parent") }
-    ksp(Dependencies.glide_ksp)
-    api(Dependencies.zguop_banner)
-    api(Dependencies.tencent_bugly)
-    api(Dependencies.loading_button)
-    api(Dependencies.luksiege_picture_selector)
-    api(Dependencies.luksiege_ucrop)
-    api(Dependencies.smart_refresh)
-    api(Dependencies.smart_refresh_material_header)
-
-    // Compose
     api(platform(compose.bom))
-    api(compose.activity)
-    api(compose.material3.core)
-    api(compose.material.core)
+    api(compose.androidx.activity)
+    api(compose.androidx.material3)
+    api(compose.androidx.material)
+    api(compose.androidx.ui.tooling)
+    api(compose.androidx.ui.util)
+    api(compose.androidx.material.icons.extended)
     api(compose.accompanist.themeadapter)
-    api(compose.ui.tooling)
-    api(compose.foundation)
+    api(compose.accompanist.systemuicontroller)
+
+    // 不支持在MinSdk 24以下的设备运行
+    debugApi(libs.leakcanary.android)
+    debugApi(libs.glance)
+    androidTestApi(app.androidx.test.junit.ktx)
+    androidTestApi(app.androidx.test.espresso.core)
 }

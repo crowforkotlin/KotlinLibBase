@@ -1,6 +1,4 @@
-@file:Suppress("unused", "SpellCheckingInspection", "MemberVisibilityCanBePrivate", "NewApi",
-    "UNUSED_PARAMETER"
-)
+@file:Suppress("unused", "SpellCheckingInspection", "MemberVisibilityCanBePrivate", "NewApi")
 
 package com.crow.lib_base.ui.view
 
@@ -15,10 +13,8 @@ import android.text.TextPaint
 import android.view.ViewTreeObserver
 import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
-import androidx.core.view.ViewCompat
-import androidx.core.view.doOnLayout
-import androidx.core.view.doOnPreDraw
 import com.crow.base.ext.log
+import com.listen.x3player.kt.view.text.StaticTextView
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
@@ -27,7 +23,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.properties.Delegates
-
 
 /**
  * ● 静态文本组件 -- 布局
@@ -54,6 +49,8 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
          */
         internal const val DEBUG = false
         internal const val ENABLE_AUTO_UPDATE = false
+        private const val NEWLINE_CHAR_FLAG_SLASH = '/'
+        private const val NEWLINE_CHAR_FLAG_N = 'n'
 
         /**
          * ● 缓存VIEW个数 勿动改了后会出问题
@@ -122,6 +119,22 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
     }
 
     /**
+     * ● 是否完成布局
+     *
+     * ● 2023-12-04 10:49:29 周一 上午
+     * @author crowforkotlin
+     */
+    private var mLayoutComplete: Boolean = false
+
+    /**
+     * ● 当前任务
+     *
+     * ● 2023-12-04 11:01:30 周一 上午
+     * @author crowforkotlin
+     */
+    private var mTask: MutableList<Int>? = null
+
+    /**
      * ● 文本画笔
      *
      * ● 2023-11-01 09:51:41 周三 上午
@@ -136,7 +149,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-10-31 14:04:26 周二 下午
      * @author crowforkotlin
      */
-    private val mList : MutableList<Pair<String, Float>> = mutableListOf()
+    private var mList : MutableList<Pair<String, Float>> = mutableListOf()
 
     /**
      * ● 动画持续时间
@@ -200,8 +213,9 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-11-01 10:12:30 周三 上午
      * @author crowforkotlin
      */
-    private var mCurrentViewPos: Int by Delegates.observable(0) { _, oldViewPos, newViewPos -> onVariableChanged(
-        FLAG_LAYOUT_REFRESH, oldViewPos, newViewPos) }
+    private var mCurrentViewPos: Int by Delegates.observable(0) { _, _, _ -> onVariableChanged(
+        FLAG_LAYOUT_REFRESH
+    ) }
 
     /**
      * ● 文本列表位置 -- 设置后会触发重新绘制
@@ -209,8 +223,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-10-31 14:06:16 周二 下午
      * @author crowforkotlin
      */
-    private var mListPosition : Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(
-        FLAG_CHILD_REFRESH, oldPosition, newPosition) }
+    private var mListPosition : Int by Delegates.observable(0) { _, _, _ -> onVariableChanged( FLAG_CHILD_REFRESH) }
 
     /**
      * ● 多行文本（换行）位置
@@ -218,8 +231,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-11-03 18:19:24 周五 下午
      * @author crowforkotlin
      */
-    private var mMultipleLinePos: Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(
-        FLAG_CHILD_REFRESH, oldPosition, newPosition) }
+    private var mMultipleLinePos: Int by Delegates.observable(0) { _, _, _ -> onVariableChanged( FLAG_CHILD_REFRESH) }
 
     /**
      * ● 滚动速度 --- 设置滚动速度实际上是对动画持续时间进行设置 重写SET函数，实现滚动速度设置 对动画时间进行相对的设置，设置后会触发重新绘制 IntRange(from = 1, to = 15)
@@ -227,8 +239,9 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-10-31 13:59:53 周二 下午
      * @author crowforkotlin
      */
-    var mScrollSpeed: Int by Delegates.observable(1) { _, oldSpeed, newSpeed -> onVariableChanged(
-        FLAG_SCROLL_SPEED, oldSpeed, newSpeed) }
+    var mScrollSpeed: Int by Delegates.observable(1) { _, _, _ -> onVariableChanged(
+        FLAG_SCROLL_SPEED
+    ) }
 
     /**
      * ● 文本内容 -- 设置后会触发重新绘制
@@ -236,13 +249,12 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-10-31 14:03:56 周二 下午
      * @author crowforkotlin
      */
-    var mText: String by Delegates.observable("") { _, oldText, newText ->
-        viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                viewTreeObserver.removeOnGlobalLayoutListener(this)
-                onVariableChanged(FLAG_TEXT, oldText, newText)
-            }
-        })
+    var mText: String by Delegates.observable("") { _, _, _ ->
+        if (!mLayoutComplete) {
+            addTask(FLAG_TEXT)
+        } else {
+            onVariableChanged(FLAG_TEXT)
+        }
     }
 
     /**
@@ -251,8 +263,9 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-11-09 09:47:58 周四 上午
      * @author crowforkotlin
      */
-    var mBackgroundColor: Int by Delegates.observable(Color.BLACK) { _, oldColor, newColor -> onVariableChanged(
-        FLAG_BACKGROUND_COLOR, oldColor, newColor) }
+    var mBackgroundColor: Int by Delegates.observable(Color.BLACK) { _, _, _ -> onVariableChanged(
+        FLAG_BACKGROUND_COLOR
+    ) }
 
     /**
      * ● 是否开启换行
@@ -384,6 +397,17 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
         mTextPaint.color = mFontColor
         mTextPaint.textSize = mFontSize
         mTextPaint.typeface = if (mFontMonoSpace) Typeface.MONOSPACE else Typeface.DEFAULT
+        viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                viewTreeObserver.removeOnGlobalLayoutListener(this)
+                mLayoutComplete = true
+                mTask?.let { task ->
+                    task.forEach(::onVariableChanged)
+                    task.clear()
+                    mTask = null
+                }
+            }
+        })
     }
 
     /**
@@ -399,6 +423,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
         cancelAnimator()
         mCacheViews.clear()
         mList.clear()
+        mTask?.clear()
         mLastAnimation = -1
     }
 
@@ -424,7 +449,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-10-31 14:14:18 周二 下午
      * @author crowforkotlin
      */
-    private fun<T : Any> onVariableChanged(flag: Int, oldValue: T, newValue: T) {
+    private fun onVariableChanged(flag: Int) {
 
         // 根据FLAG 执行对于Logic
         when(flag) {
@@ -433,7 +458,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
             FLAG_TEXT -> {
                 val text = if (mText.length > MAX_STRING_LENGTH) { mText.substring(0, MAX_STRING_LENGTH) } else mText
                 var firstInit = false
-                onUpdateTextLists(getTextLists(text))
+                mList = getTextLists(text)
                 // 如果缓存View < 2个 则初始化缓存View
                 val currentCacheViewSize = mCacheViews.size
                 if (currentCacheViewSize < REQUIRED_CACHE_SIZE) {
@@ -459,7 +484,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
             }
             FLAG_SCROLL_SPEED -> {
                 // 根据 mScrollSpeed 动态调整 mAnimationDuration
-                val baseDuration = (16 - newValue as Int)
+                val baseDuration = 16 - mScrollSpeed
                 mAnimationDuration = if (baseDuration == 1) {
                     1000L
                 } else {
@@ -481,19 +506,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
     }
 
     /**
-     * ● 更新文本列表
-     *
-     * ● 2023-11-01 17:37:01 周三 下午
-     * @author crowforkotlin
-     */
-    private fun onUpdateTextLists(texts: MutableList<Pair<String, Float>>) {
-        mList.clear()
-        mList.addAll(texts)
-    }
-
-
-    /**
-     * ● 更新当前文本位置 或者 视图 （当列表被更新 可能 会小于当前的列表位置 就直接 替换成最后一个， 相对会继续触发更新ChildView 否则也是更新ChildView 所以用else if 继续做个判断）
+     * ● 更新当前文本位置 或者 视图 （当列表被更新 可能 会小于当前的列表位置 就直接 替换成最后一个， 相对会继续触发ChildView的更新
      *
      * ● 2023-11-01 17:34:08 周三 下午
      * @author crowforkotlin
@@ -501,7 +514,11 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
     private fun onUpdatePosOrView(updateAll: Boolean = false, forceUpdate: Boolean = false) {
         val size = mList.size
         when {
-            size <= if (mMultipleLineEnable) mMultipleLinePos else mListPosition -> if (mMultipleLineEnable) mMultipleLinePos = 0 else mListPosition = size - 1
+            size <= if (mMultipleLineEnable) mMultipleLinePos else mListPosition -> {
+                if (mMultipleLineEnable) mMultipleLinePos = 0 else {
+                    mListPosition = size - 1
+                }
+            }
             mUpdateStrategy == STRATEGY_TEXT_UPDATE_DEFAULT || forceUpdate -> onNotifyViewUpdate(updateAll = updateAll)
         }
     }
@@ -515,6 +532,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
     private fun isListSizeFitPage(): Boolean {
         return if (mMultipleLineEnable) {
             val textMaxLine = (measuredHeight / getTextHeight(mTextPaint.fontMetrics)).toInt()
+            if (textMaxLine <= 0) return false
             val textListSize = mList.size
             var totalCount: Int = textListSize / textMaxLine
             if (textListSize  % textMaxLine != 0) { totalCount ++ }
@@ -628,32 +646,90 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      */
     private fun getTextLists(originText: String): MutableList<Pair<String, Float>> {
         var textStringWidth = 0f
-        var textStringBuilder = StringBuilder()
+        val textStringBuilder = StringBuilder()
         val textList: MutableList<Pair<String, Float>> = mutableListOf()
         val textMaxIndex = originText.length - 1
         mTextPaint.textSize = mFontSize
         originText.forEachIndexed { index, char ->
             val textWidth = mTextPaint.measureText(char.toString(), 0, 1)
             textStringWidth += textWidth
+
+            // 字符串宽度 < 测量宽度
             if (textStringWidth <= measuredWidth) {
-                textStringBuilder.append(char)
-                if (index == textMaxIndex) {
-                    textList.add(textStringBuilder.toString() to textStringWidth)
-                    textStringWidth = 0f
+                when(char) {
+                    NEWLINE_CHAR_FLAG_SLASH -> {
+                        if (originText.getOrNull(index + 1) == NEWLINE_CHAR_FLAG_N) {
+                            textList.add(textStringBuilder.toString() to textStringWidth - textWidth)
+                            textStringBuilder.clear()
+                            textStringWidth = 0f
+                        }
+                    }
+                    NEWLINE_CHAR_FLAG_N -> {
+                        if (index == textMaxIndex) {
+                            textStringWidth = if (originText.getOrNull(index - 1) != NEWLINE_CHAR_FLAG_SLASH) {
+                                textStringBuilder.append(char)
+                                textList.add(textStringBuilder.toString() to textStringWidth)
+                                0f
+                            } else {
+                                0f
+                            }
+                        } else {
+                            if (originText.getOrNull(index - 1) != NEWLINE_CHAR_FLAG_SLASH) {
+                                textStringBuilder.append(char)
+                            } else {
+                                textStringWidth = 0f
+                            }
+                        }
+                    }
+                    else -> {
+                        if (index == textMaxIndex) {
+                            textStringBuilder.append(char)
+                            textList.add(textStringBuilder.toString() to textStringWidth)
+                            textStringWidth = 0f
+                        } else {
+                            textStringBuilder.append(char)
+                        }
+                    }
                 }
             } else {
-                textList.add(textStringBuilder.toString() to textStringWidth - textWidth)
-                textStringBuilder = StringBuilder()
-                textStringBuilder.append(char)
-                if (index == textMaxIndex) {
-                    textList.add(textStringBuilder.toString() to textWidth)
-                } else {
-                    textStringWidth = textWidth
+                when(char) {
+                    NEWLINE_CHAR_FLAG_SLASH -> {
+                        if (originText.getOrNull(index + 1) == NEWLINE_CHAR_FLAG_N) {
+                            textList.add(textStringBuilder.toString() to textStringWidth - textWidth)
+                            textStringBuilder.clear()
+                            textStringWidth = 0f
+                        }
+                    }
+                    NEWLINE_CHAR_FLAG_N -> {
+                        if (originText.getOrNull(index - 1) != NEWLINE_CHAR_FLAG_SLASH) {
+                            textList.add(textStringBuilder.toString() to textStringWidth - textWidth)
+                            textStringBuilder.clear()
+                            textStringBuilder.append(char)
+                            if (index == textMaxIndex) {
+                                textList.add(textStringBuilder.toString() to textWidth)
+                            } else {
+                                textStringWidth = textWidth
+                            }
+                        } else {
+                            textStringWidth = 0f
+                        }
+                    }
+                    else -> {
+                        textList.add(textStringBuilder.toString() to textStringWidth - textWidth)
+                        textStringBuilder.clear()
+                        textStringBuilder.append(char)
+                        if (index == textMaxIndex) {
+                            textList.add(textStringBuilder.toString() to textWidth)
+                        } else {
+                            textStringWidth = textWidth
+                        }
+                    }
                 }
             }
         }
         return textList
     }
+
 
     /**
      * ● 更新ChildView的位置
@@ -680,6 +756,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
         when(mMultipleLineEnable) {
             true -> {
                 val textMaxLine = (measuredHeight / getTextHeight(mTextPaint.fontMetrics)).toInt()
+                if (textMaxLine <= 0) return
                 val textListSize = mList.size
                 var textTotalCount: Int = textListSize / textMaxLine
                 if (textListSize  % textMaxLine != 0) { textTotalCount ++ }
@@ -858,8 +935,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
             val viewNextB = getNextView(mCurrentViewPos)
             val viewAEnd: Float
             val viewBStart: Float
-            val viewY = layoutParams.height.toFloat()
-
+            val viewY = measuredHeight.toFloat()
             when (mAnimationTop) {
                 true -> {
                     viewAEnd = -viewY
@@ -878,7 +954,6 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
                     }
                 }
             }
-
             val viewAnimationA = ObjectAnimator.ofFloat(viewCurrentA, "translationY", viewCurrentA.translationY, viewAEnd)
             val viewAnimationB = ObjectAnimator.ofFloat(viewNextB, "translationY", viewNextB.translationY, 0f)
             mViewAnimatorSet?.let { animatorSet ->
@@ -893,20 +968,17 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
                         updateViewPosition()
                         updateTextListPosition()
                     }
-
                     override fun onAnimationEnd(animation: Animator) {
                         if (!continuation.isCompleted) {
                             continuation.resume(Unit)
                         }
                     }
-
                     override fun onAnimationCancel(animation: Animator) {
                         if (mAnimationStrategy == STRATEGY_ANIMATION_UPDATE_DEFAULT) {
                             mCurrentDuration = animatorSet.duration - animatorSet.currentPlayTime
                         }
                         whenAnimationCancel()
                     }
-
                     override fun onAnimationRepeat(animation: Animator) {}
                 })
                 animatorSet.start()
@@ -1026,7 +1098,6 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      */
     fun applyOption() {
         if (mCacheViews.isNotEmpty()) {
-            mLastAnimation = -1
             mTextPaint.apply {
                 color = mFontColor
                 isAntiAlias = mEnableAntiAlias
@@ -1039,10 +1110,20 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
                 view.mGravity = mGravity
                 view.mMultiLineEnable = mMultipleLineEnable
             }
-            onUpdateTextLists(getTextLists(mText))
+            mList = getTextLists(mText)
             onUpdatePosOrView(updateAll = true)
             onUpdateIfResetAnimation()
         }
+    }
+
+    /**
+     * ● 添加任务
+     *
+     * ● 2023-12-04 11:02:32 周一 上午
+     * @author crowforkotlin
+     */
+    private fun addTask(flag: Int) {
+       if (mTask == null) mTask = mutableListOf(flag) else mTask?.add(flag)
     }
 
     fun getSnapshotView(): MutableList<StaticTextView> {
