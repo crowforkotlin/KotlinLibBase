@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.crow.lib_base.ui.masklayout
+package com.crow.base.view.attr_mask_layout
 
 import android.animation.TimeInterpolator
 import android.animation.ValueAnimator

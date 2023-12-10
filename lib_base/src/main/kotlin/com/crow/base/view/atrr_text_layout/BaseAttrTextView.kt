@@ -1,6 +1,6 @@
 @file:Suppress("MemberVisibilityCanBePrivate", "KotlinConstantConditions", "unused", "SpellCheckingInspection")
 
-package com.listen.x3player.kt.view.text
+package com.crow.base.view.atrr_text_layout
 
 import android.content.Context
 import android.graphics.Canvas
@@ -9,21 +9,19 @@ import android.graphics.Paint
 import android.graphics.Paint.FontMetrics
 import android.text.TextPaint
 import android.view.View
-import com.crow.lib_base.ui.view.IMarExt
-import com.crow.lib_base.ui.view.StaticTextLayout
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.min
 import kotlin.properties.Delegates
 
 /**
- * ● 静态文本组件
+ * ● 属性文本组件
  *
  * ● 2023/10/30 15:53
  * @author: crowforkotlin
  * @formatter:on
  */
-class StaticTextView(context: Context) : View(context), IMarExt {
+class BaseAttrTextView(context: Context) : View(context), IBaseAttrTextExt {
 
     companion object {
 
@@ -70,7 +68,8 @@ class StaticTextView(context: Context) : View(context), IMarExt {
      * ● 2023-10-31 14:06:16 周二 下午
      * @author crowforkotlin
      */
-    var mListPosition : Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(FLAG_REFRESH, oldPosition, newPosition, skipSameCheck = true) }
+    var mListPosition : Int by Delegates.observable(0) { _, oldPosition, newPosition -> onVariableChanged(
+        FLAG_REFRESH, oldPosition, newPosition, skipSameCheck = true) }
 
     /**
      * ● 视图对齐方式 -- 上中下
@@ -78,7 +77,8 @@ class StaticTextView(context: Context) : View(context), IMarExt {
      * ● 2023-10-31 15:24:43 周二 下午
      * @author crowforkotlin
      */
-    var mGravity: Int by Delegates.observable(StaticTextLayout.GRAVITY_TOP_START) { _, oldSize, newSize -> onVariableChanged(FLAG_REFRESH, oldSize, newSize) }
+    var mGravity: Int by Delegates.observable(BaseAttrTextLayout.GRAVITY_TOP_START) { _, oldSize, newSize -> onVariableChanged(
+        FLAG_REFRESH, oldSize, newSize) }
 
     /**
      * ● 是否开启换行
@@ -86,7 +86,8 @@ class StaticTextView(context: Context) : View(context), IMarExt {
      * ● 2023-10-31 17:31:20 周二 下午
      * @author crowforkotlin
      */
-    var mMultiLineEnable: Boolean by Delegates.observable(false) { _, oldValue, newValue -> onVariableChanged(FLAG_REFRESH, oldValue, newValue) }
+    var mMultiLineEnable: Boolean by Delegates.observable(false) { _, oldValue, newValue -> onVariableChanged(
+        FLAG_REFRESH, oldValue, newValue) }
 
     /**
      * ● 设置硬件加速渲染
@@ -123,36 +124,36 @@ class StaticTextView(context: Context) : View(context), IMarExt {
 
         // 设置X和Y的坐标 ，Paint绘制的文本在descent位置 进行相对应的计算即可
         when(mGravity) {
-            StaticTextLayout.GRAVITY_TOP_START -> {
+            BaseAttrTextLayout.GRAVITY_TOP_START -> {
                 mTextY = abs(mTextPaint.fontMetrics.ascent)
                 drawTopText(canvas, text, textListSize) { mTextX = 0f }
             }
-            StaticTextLayout.GRAVITY_TOP_CENTER -> {
+            BaseAttrTextLayout.GRAVITY_TOP_CENTER -> {
                 mTextY = abs(mTextPaint.fontMetrics.ascent)
                 drawTopText(canvas, text, textListSize) { mTextX = (width shr 1) - it / 2 }
             }
-            StaticTextLayout.GRAVITY_TOP_END -> {
+            BaseAttrTextLayout.GRAVITY_TOP_END -> {
                 mTextY = abs(mTextPaint.fontMetrics.ascent)
                 drawTopText(canvas, text, textListSize) { mTextX = width - it }
             }
-            StaticTextLayout.GRAVITY_CENTER_START -> {
+            BaseAttrTextLayout.GRAVITY_CENTER_START -> {
                 drawCenterText(canvas, text, textListSize) { mTextX = 0f }
             }
-            StaticTextLayout.GRAVITY_CENTER -> {
+            BaseAttrTextLayout.GRAVITY_CENTER -> {
                 drawCenterText(canvas, text, textListSize) { mTextX = (width shr 1) - it / 2 }
             }
-            StaticTextLayout.GRAVITY_CENTER_END -> {
+            BaseAttrTextLayout.GRAVITY_CENTER_END -> {
                 drawCenterText(canvas, text, textListSize) { mTextX = width - it }
             }
-            StaticTextLayout.GRAVITY_BOTTOM_START -> {
+            BaseAttrTextLayout.GRAVITY_BOTTOM_START -> {
                 mTextY = height - calculateBaselineOffsetY(mTextPaint.fontMetrics)
                 drawBottomText(canvas, text, textListSize) { mTextX = 0f }
             }
-            StaticTextLayout.GRAVITY_BOTTOM_CENTER -> {
+            BaseAttrTextLayout.GRAVITY_BOTTOM_CENTER -> {
                 mTextY = height - calculateBaselineOffsetY(mTextPaint.fontMetrics)
                 drawBottomText(canvas, text, textListSize) { mTextX =  (width shr 1) - it /  2 }
             }
-            StaticTextLayout.GRAVITY_BOTTOM_END -> {
+            BaseAttrTextLayout.GRAVITY_BOTTOM_END -> {
                 mTextY = height - calculateBaselineOffsetY(mTextPaint.fontMetrics)
                 drawBottomText(canvas, text, textListSize) { mTextX = width - it }
             }
@@ -274,7 +275,7 @@ class StaticTextView(context: Context) : View(context), IMarExt {
      */
     private fun onRunDebug(canvas: Canvas) {
         // DEBUG 模式
-        if (StaticTextLayout.DEBUG) {
+        if (BaseAttrTextLayout.DEBUG) {
             val paintColor = mTextPaint.color
 
             // 绘制中线

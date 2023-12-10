@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package com.crow.lib_base.ui.masklayout
+package com.crow.base.view.attr_mask_layout
 
-import android.R
 import android.animation.TimeInterpolator
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.util.AttributeSet
 import android.view.View
@@ -29,11 +27,9 @@ import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
 import androidx.annotation.RequiresApi
-import androidx.core.content.ContextCompat
 import androidx.core.view.get
 import com.ave.vastgui.tools.view.masklayout.MaskAnimation
 import kotlin.math.hypot
-import kotlin.properties.Delegates
 
 // Author: Vast Gui
 // Email: guihy2019@gmail.com
