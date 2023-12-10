@@ -28,7 +28,6 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
 import androidx.annotation.RequiresApi
 import androidx.core.view.get
-import com.ave.vastgui.tools.view.masklayout.MaskAnimation
 import kotlin.math.hypot
 
 // Author: Vast Gui

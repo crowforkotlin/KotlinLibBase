@@ -29,7 +29,6 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.core.animation.addListener
-import com.ave.vastgui.tools.view.masklayout.MaskAnimation
 import kotlin.properties.Delegates
 
 // Author: Vast Gui
