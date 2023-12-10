@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package com.crow.base.tools.extensions
+package com.crow.base.ext
 
 import android.content.Context
 import android.graphics.Canvas
@@ -16,7 +16,7 @@ import androidx.annotation.Px
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.core.view.setPadding
-import com.crow.lib_base.app
+import com.crow.base.app
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.math.PI

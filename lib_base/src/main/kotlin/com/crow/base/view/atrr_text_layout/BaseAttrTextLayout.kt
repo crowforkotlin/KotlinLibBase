@@ -1,4 +1,4 @@
-@file:Suppress("unused", "SpellCheckingInspection", "MemberVisibilityCanBePrivate", "NewApi")
+@file:Suppress("unused", "SpellCheckingInspection", "MemberVisibilityCanBePrivate", "NewApi", "SameParameterValue")
 
 package com.crow.base.view.atrr_text_layout
 
