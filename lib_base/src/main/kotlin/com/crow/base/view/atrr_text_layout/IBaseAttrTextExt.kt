@@ -1,9 +1,9 @@
-package com.crow.lib_base.ui.view
+package com.crow.base.view.atrr_text_layout
 
 import android.graphics.Paint
 import kotlin.math.abs
 
-interface IMarExt {
+interface IBaseAttrTextExt {
 
     /**
      * ● 获取文本高度：ascent绝对值 + descent

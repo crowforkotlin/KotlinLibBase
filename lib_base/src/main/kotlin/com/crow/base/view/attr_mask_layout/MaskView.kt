@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.crow.lib_base.ui.masklayout
+package com.crow.base.view.attr_mask_layout
 
 import android.animation.TimeInterpolator
 import android.animation.ValueAnimator
@@ -29,7 +29,6 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.core.animation.addListener
-import com.ave.vastgui.tools.view.masklayout.MaskAnimation
 import kotlin.properties.Delegates
 
 // Author: Vast Gui

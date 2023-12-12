@@ -1,6 +1,6 @@
-@file:Suppress("unused", "SpellCheckingInspection", "MemberVisibilityCanBePrivate", "NewApi")
+@file:Suppress("unused", "SpellCheckingInspection", "MemberVisibilityCanBePrivate", "NewApi", "SameParameterValue")
 
-package com.crow.lib_base.ui.view
+package com.crow.base.view.atrr_text_layout
 
 import android.animation.Animator
 import android.animation.AnimatorSet
@@ -14,7 +14,6 @@ import android.view.ViewTreeObserver
 import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import com.crow.base.ext.log
-import com.listen.x3player.kt.view.text.StaticTextView
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
@@ -25,13 +24,13 @@ import kotlin.coroutines.resume
 import kotlin.properties.Delegates
 
 /**
- * ● 静态文本组件 -- 布局
+ * ● 属性文本组件 -- 布局
  *
  * ● 2023/10/30 15:53
  * @author crowforkotlin
  * @formatter:on
  */
-class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
+class BaseAttrTextLayout(context: Context) : FrameLayout(context), IBaseAttrTextExt {
 
     /**
      * ● 静态区域
@@ -200,12 +199,12 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
     private val mViewScope = MainScope()
 
     /**
-     * ● 缓存StaticMarView （默认两个）
+     * ● 缓存AttrTextView （默认两个）
      *
      * ● 2023-11-01 09:53:01 周三 上午
      * @author crowforkotlin
      */
-    private val mCacheViews = ArrayList<StaticTextView>(REQUIRED_CACHE_SIZE)
+    private val mCacheViews = ArrayList<BaseAttrTextView>(REQUIRED_CACHE_SIZE)
 
     /**
      * ● 当前视图的位置
@@ -428,13 +427,13 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
     }
 
     /**
-     * ● 初始化静态文本视图
+     * ● 初始化属性文本视图
      *
      * ● 2023-11-08 11:24:35 周三 上午
      * @author crowforkotlin
      */
-    private fun initStaticMarView(): StaticTextView {
-        return StaticTextView(context).also { view ->
+    private fun creatAttrTextView(): BaseAttrTextView {
+        return BaseAttrTextView(context).also { view ->
             view.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
             view.mTextPaint = mTextPaint
             view.mMultiLineEnable = mMultipleLineEnable
@@ -472,11 +471,11 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
                         typeface = if (mFontMonoSpace) Typeface.MONOSPACE else Typeface.DEFAULT
                     }
                     for (index in 0 until  viewsToAdd) {
-                        mCacheViews.add(initStaticMarView())
+                        mCacheViews.add(creatAttrTextView())
                     }
                     firstInit = true
                     if (DEBUG) {
-                        mCacheViews.forEachIndexed { index, staticTextView -> staticTextView.tag = index }
+                        mCacheViews.forEachIndexed { index, attrTextView -> attrTextView.tag = index }
                     }
                 }
                 onUpdatePosOrView(forceUpdate = firstInit)
@@ -603,7 +602,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
      * ● 2023-11-02 10:44:24 周四 上午
      * @author crowforkotlin
      */
-    private fun getNextView(pos: Int): StaticTextView {
+    private fun getNextView(pos: Int): BaseAttrTextView {
         return if (pos < mCacheViews.size - 1) {
             mCacheViews[pos + 1]
         } else {
@@ -1126,7 +1125,7 @@ class StaticTextLayout(context: Context) : FrameLayout(context), IMarExt {
        if (mTask == null) mTask = mutableListOf(flag) else mTask?.add(flag)
     }
 
-    fun getSnapshotView(): MutableList<StaticTextView> {
+    fun getSnapshotView(): MutableList<BaseAttrTextView> {
         return mutableListOf(mCacheViews.first(), mCacheViews.last())
     }
 }
