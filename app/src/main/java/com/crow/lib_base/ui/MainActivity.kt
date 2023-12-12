@@ -4,8 +4,8 @@ import android.os.Bundle
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.crow.base.android.view.atrr_text_layout.BaseAttrTextLayout
 import com.crow.lib_base.databinding.AppActivityMainBinding
-import com.crow.base.view.atrr_text_layout.BaseAttrTextLayout
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {

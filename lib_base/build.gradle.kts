@@ -17,9 +17,6 @@ android {
 
         // 开启 Compose
         compose = true
-
-        // 开启构建配置
-        buildConfig = true
     }
 
     defaultConfig {
@@ -127,7 +124,6 @@ dependencies {
     api(libs.refresh.layout.kernel)
     api(libs.refresh.header.material)
     api(libs.glide)
-    api(libs.reactivex.rxjava3.rxkotlin)
     api(libs.glide.okhttp3.integration) { exclude(group = "glide-parent") }
     ksp(libs.glide.ksp)
 
