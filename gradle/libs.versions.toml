@@ -79,6 +79,7 @@ luksiege-compress = { group = "io.github.lucksiege", name = "compress", version.
 luksiege-ucrop = { group = "io.github.lucksiege", name = "ucrop", version.ref = "lucksiege-pictureselector" }
 luksiege-camerax = { group = "io.github.lucksiege", name = "camerax", version.ref = "lucksiege-pictureselector" }
 
+reactivex-rxjava3-rxkotlin = { group = "io.reactivex.rxjava3", name = "rxkotlin", version.ref = "rxjava3"}
 reactivex-rxjava3 = { group = "io.reactivex.rxjava3", name = "rxjava", version.ref = "rxjava3" }
 reactivex-rxjava3-rxandroid = { group = "io.reactivex.rxjava3", name = "rxandroid", version.ref = "rxjava3-android" }
 
@@ -99,3 +100,4 @@ glide-compiler = { group = "com.github.bumptech.glide", name = "compiler", versi
 glide-ksp = { group = "com.github.bumptech.glide", name = "ksp", version.ref = "glide" }
 glide-annotations = { group = "com.github.bumptech.glide", name = "annotations", version.ref = "glide" }
 glide-okhttp3-integration = { group = "com.github.bumptech.glide", name = "okhttp3-integration", version.ref = "glide" }
+

@@ -5,7 +5,7 @@
 
         <activity
             android:theme="@style/Base.Theme.Material3_Project"
-            android:name=".ui.activity.CrashActivity" />
+            android:name=".container.activity.CrashActivity" />
 
     </application>
 

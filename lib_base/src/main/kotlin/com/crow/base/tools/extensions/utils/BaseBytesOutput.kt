@@ -1,13 +1,13 @@
-package com.crow.base.basic.bytes
+package com.crow.base.tools.extensions.utils
 
-import com.crow.base.ext.Bytes
-import com.crow.base.ext.fromInt16
-import com.crow.base.ext.fromInt16LittleEndian
-import com.crow.base.ext.fromInt32
-import com.crow.base.ext.fromInt8
+import com.crow.base.tools.extensions.Bytes
+import com.crow.base.tools.extensions.fromInt16
+import com.crow.base.tools.extensions.fromInt16LittleEndian
+import com.crow.base.tools.extensions.fromInt32
+import com.crow.base.tools.extensions.fromInt8
 import java.io.ByteArrayOutputStream
 
-class BytesOutput : ByteArrayOutputStream() {
+class BaseBytesOutput : ByteArrayOutputStream() {
 
     fun writeInt8(byte: Byte) {
         this.write(byte.toInt())

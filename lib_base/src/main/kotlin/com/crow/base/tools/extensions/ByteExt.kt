@@ -1,8 +1,7 @@
 @file:Suppress("FunctionName", "SpellCheckingInspection")
 
-package com.crow.base.ext
+package com.crow.base.tools.extensions
 
-import androidx.compose.ui.text.substring
 import java.io.ByteArrayOutputStream
 
 typealias Bytes = ByteArray
@@ -30,6 +29,21 @@ fun toInt32(bytes: Bytes, startIndex: Int = 0, isLittleEndian: Boolean = false):
             ((bytes[startIndex + 1].toInt() and 0xFF) shl 16) or
             ((bytes[startIndex + 2].toInt() and 0xFF) shl 8) or
             (bytes[startIndex + 3].toInt() and 0xFF)
+}
+
+@OptIn(ExperimentalUnsignedTypes::class)
+fun toUInt32(uBytes: UByteArray, startIndex: Int = 0, isLittleEndian: Boolean = false): Long {
+    return ((uBytes[startIndex].toLong() shl 24) or
+            (uBytes[startIndex + 1].toLong() shl 16) or
+            (uBytes[startIndex + 2].toLong() shl 8) or
+            (uBytes[startIndex + 3].toLong()))
+}
+
+fun toUInt32(bytes: ByteArray, startIndex: Int = 0, isLittleEndian: Boolean = false): Long {
+    return ((bytes[startIndex].toLong() shl 24) or
+            (bytes[startIndex + 1].toLong() shl 16) or
+            (bytes[startIndex + 2].toLong() shl 8) or
+            (bytes[startIndex + 3].toLong()))
 }
 
 /**
