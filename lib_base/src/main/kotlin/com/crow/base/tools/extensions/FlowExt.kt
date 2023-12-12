@@ -4,7 +4,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import com.crow.base.BuildConfig
-import com.crow.base.ui.viewmodel.ViewStateException
+import com.crow.base.android.viewmodel.ViewStateException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.ProducerScope

@@ -5,10 +5,10 @@ import androidx.annotation.MainThread
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.CreationExtras
-import com.crow.base.ui.activity.BaseActivityImpl
-import com.crow.base.ui.fragment.BaseFragmentImpl
-import com.crow.base.ui.viewmodel.BaseViewModel
-import com.crow.base.ui.viewmodel.BaseViewModelStore
+import com.crow.base.android.activity.BaseActivityImpl
+import com.crow.base.android.fragment.BaseFragmentImpl
+import com.crow.base.android.viewmodel.BaseViewModel
+import com.crow.base.android.viewmodel.BaseViewModelStore
 import org.koin.android.ext.android.getKoinScope
 import org.koin.androidx.viewmodel.ext.android.getViewModel
 import org.koin.androidx.viewmodel.resolveViewModel
