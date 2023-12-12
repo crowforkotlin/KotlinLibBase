@@ -279,14 +279,13 @@ fun formateAsBytes(content: String): ByteArray? {
                 .replace(" ", "")
                 .removeSurrounding("[" , "]")
                 .split(",")
-                .map {
-                    if(it == "00") 0.toByte() else if(it.first() == '0') it.last().digitToInt().toByte() else it.toInt().toByte() }
+                .map { it.hexToByte() }
                 .toByteArray()
         } else {
             content
                 .removeSurrounding("[" , "]")
                 .split(" ")
-                .map { if(it == "00") 0.toByte() else if(it.first() == '0') it.last().digitToInt().toByte() else it.toInt().toByte() }
+                .map { it.hexToByte() }
                 .toByteArray()
         }
         result
