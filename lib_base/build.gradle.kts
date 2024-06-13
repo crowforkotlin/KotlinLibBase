@@ -2,6 +2,15 @@ plugins {
     alias(app.plugins.android.library)
     alias(app.plugins.android.kotlin)
     alias(app.plugins.android.ksp)
+    alias(app.plugins.kotlin.compose.compiler)
+    alias(libs.plugins.buildconfig)
+}
+
+buildConfig {
+    buildConfigField("APPLICATION_ID", AppConfigs.application_id)
+    buildConfigField("VERSION_NAME", AppConfigs.version_name)
+    buildConfigField("VERSION_CODE", "${AppConfigs.version_code}")
+    buildConfigField("APP_NAME", project.name)
 }
 
 android {
@@ -14,16 +23,13 @@ android {
 
         // 开启 ViewBinding
         viewBinding = true
-
-        // 开启 Compose
-        compose = true
     }
 
     defaultConfig {
 
-        buildConfigField("String", "APPLICATION_ID", "\"${AppConfigs.application_id}\"")
-        buildConfigField("String", "VERSION_NAME", "\"${AppConfigs.version_name}\"")
-        buildConfigField("int", "VERSION_CODE", "${AppConfigs.version_code}")
+//        buildConfigField("String", "APPLICATION_ID", "\"${AppConfigs.application_id}\"")
+//        buildConfigField("String", "VERSION_NAME", "\"${AppConfigs.version_name}\"")
+//        buildConfigField("int", "VERSION_CODE", "${AppConfigs.version_code}")
 
         // 资源前缀（所有资源前缀必须添加）
         resourcePrefix = AppConfigs.base_resource_prefix
@@ -36,11 +42,6 @@ android {
 
         // 兼容目标版本的SDK
         targetSdk = AppConfigs.target_sdk_version
-
-        ndk {
-            // 设置支持的SO库架构 'x86', 'armeabi-v7a', 'x86_64', 'arm64-v8a'
-            abiFilters += listOf("armeabi", "x86", "x86_64", "armeabi-v7a", "armeabi-v8a")
-        }
     }
 
 
@@ -83,6 +84,11 @@ android {
         // 设置 Kotlin Compose 编译器扩展的版本 （Important）
         kotlinCompilerExtensionVersion = compose.versions.compiler.get()
     }
+
+    composeCompiler {
+        enableStrongSkippingMode = true
+    }
+
 }
 
 dependencies {
@@ -105,6 +111,7 @@ dependencies {
     api(app.androidx.core.splashscreen)
     api(app.androidx.room.ktx)
     api(app.androidx.room.runtime)
+    api(app.androidx.swiperefreshlayout)
 
     api(libs.kotlin.coroutines.core)
     api(libs.kotlin.stdlib)
@@ -120,26 +127,27 @@ dependencies {
     api(libs.photoview)
     api(libs.loading.button)
     api(libs.luksiege.picture.selector)
-    api(libs.luksiege.ucrop)
     api(libs.refresh.layout.kernel)
     api(libs.refresh.header.material)
-    api(libs.glide)
-    api(libs.glide.okhttp3.integration) { exclude(group = "glide-parent") }
-    ksp(libs.glide.ksp)
+    api(libs.coil)
 
-    api(platform(compose.bom))
+//    api(platform(compose.bom))
+//    api(compose.androidx.compose.compiler)
     api(compose.androidx.activity)
     api(compose.androidx.material3)
     api(compose.androidx.material)
     api(compose.androidx.ui.tooling)
     api(compose.androidx.ui.util)
     api(compose.androidx.material.icons.extended)
-    api(compose.accompanist.themeadapter)
+//    api(compose.accompanist.themeadapter)
     api(compose.accompanist.systemuicontroller)
 
-    // 不支持在MinSdk 24以下的设备运行
+
+    // leakcanary高版本不支持在MinSdk 24以下的设备运行
     debugApi(libs.leakcanary.android)
     debugApi(libs.glance)
+    testApi(app.junit.junit)
+    androidTestApi(app.androidx.test.junit)
     androidTestApi(app.androidx.test.junit.ktx)
     androidTestApi(app.androidx.test.espresso.core)
 }

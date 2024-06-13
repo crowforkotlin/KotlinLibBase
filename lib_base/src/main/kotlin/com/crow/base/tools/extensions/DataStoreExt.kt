@@ -44,23 +44,33 @@ object DataStoreAgent {
 
 object SpNameSpace {
 
-    const val CATALOG_NIGHT_MODE = "Catalog.NightMode"
+    const val CATALOG_CONFIG = "Catalog.Config"
 
-    object Key { const val ENABLE_DARK = "enable_dark" }
+    object Key {
+        const val ENABLE_DARK = "enable_dark"
+        const val ENABLE_CHINESE_CONVERT = "enable_chinese_convert"
+        const val ENABLE_HOT_ACCURATE_DISPLAY = "enable_hot_accurate_display"
+        const val ENABLE_UPDATE_PREFIX = "enable_update_prefix"
+        const val ENABLE_COVER_ORINAL = "enable_cover_orinal"
+        const val ENABLE_API_PROXY = "enable_api_proxy°"
+        const val ENABLE_API_IMAGE_PROXY = "enable_api_image_proxy°"
+    }
 }
 
 object DBNameSpace {
-    const val app = "preference.chapter.db"
+    const val CHAPTER_DB = "preference.chapter.db"
+    const val CHAPTER_PAGES_DB = "preference.chapter.pages.db"
+    const val READER_COMIC_DB = "preference.comic.db"
 }
 
-val Context.appDataStore: DataStore<Preferences> by preferencesDataStore(app.getString(R.string.BaseAppName))
+val Context.appDataStore: DataStore<Preferences> by preferencesDataStore(app.getString(R.string.base_app_name))
 val Context.appConfigDataStore: DataStore<Preferences> by preferencesDataStore(
     app.getString(
-        R.string.BaseAppName
+        R.string.base_app_name
     ).plus(DataStoreAgent.APP_CONFIG.name)
 )
 val Context.appBookDataStore: DataStore<Preferences> by preferencesDataStore(
-    app.getString(R.string.BaseAppName).plus(DataStoreAgent.DATA_BOOK.name)
+    app.getString(R.string.base_app_name).plus(DataStoreAgent.DATA_BOOK.name)
 )
 
 suspend fun DataStore<Preferences>.getIntData(name: String) =
@@ -110,8 +120,8 @@ suspend fun <T> Preferences.Key<T>.asyncEncode(value: T) {
     app.appDataStore.edit { it[this] = value }
 }
 
-suspend fun <T> Preferences.Key<T>.asyncClear() {
-    app.appDataStore.edit { it.clear() }
+suspend fun <T> Preferences.Key<T>.asyncRemove() {
+    app.appDataStore.edit { it.remove(this) }
 }
 
 suspend fun <T> Preferences.Key<T>.asyncDecode(): T? {

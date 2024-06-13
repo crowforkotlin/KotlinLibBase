@@ -5,12 +5,17 @@ import com.crow.base.tools.extensions.toUInt32
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileInputStream
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.util.Date
+import java.util.concurrent.Executors
 
 var job: Job? = null
 private suspend fun running(scope: CoroutineScope) {
@@ -37,8 +42,20 @@ private suspend fun running(scope: CoroutineScope) {
 
 @OptIn(ExperimentalStdlibApi::class)
 suspend fun main() {
-
-    println((0x02 - 0xE7).toByte())
+    val job = SupervisorJob()
+    val single = CoroutineScope(Executors.newSingleThreadExecutor().asCoroutineDispatcher())
+    val io = CoroutineScope(Dispatchers.IO + job)
+    val ins = FileInputStream(File("1.txt"))
+    io.launch {
+        delay(1000)
+    }
+    single.launch {
+        while (true) {
+            val byte = ins.read()
+            println(byte)
+        }
+    }
+    delay(10000000000000L)
     return
     NTPClient.connect("120.25.115.20", 123)
     val value = toUInt32(ubyteArrayOf(0xE9.toUByte(),0x1B.toUByte(),0xB6.toUByte(),0x8C.toUByte()))

@@ -1,21 +1,24 @@
-# https://github.com/google/accompanist
-# https://github.com/chrisbanes/compose-bom
-# https://androidx.tech/artifacts/compose.compiler/compiler/
+# accompanist - [https://github.com/google/accompanist]
+# compose-bom - [https://github.com/chrisbanes/compose-bom]
+# compiler - [https://androidx.tech/artifacts/compose.compiler/compiler/]
+
 [versions]
-compiler = "1.5.3"
-compose-bom = "2023.11.00-alpha02"
-accompanist = "0.33.2-alpha"
-androidx-activity = "1.8.0"
-androidx-material-icons-extended = "1.5.4"
-androidx-material = "1.5.4"
-androidx-foundation = "1.5.4"
-androidx-material3 = "1.1.2"
-androidx-animation-graphics = "1.5.4"
-androidx-ui-util = "1.5.4"
-androidx-ui-tooling = "1.5.4"
-androidx-animation = "1.5.4"
+compiler = "1.5.14"
+compose-bom = "2024.05.00-alpha02"
+accompanist = "0.35.1-alpha"
+androidx-activity = "1.9.0"
+androidx-material-icons-extended = "1.6.7"
+androidx-material = "1.7.0-beta01"
+androidx-foundation = "1.6.7"
+androidx-material3 = "1.3.0-beta01"
+androidx-animation-graphics = "1.6.7"
+androidx-ui-util = "1.6.7"
+androidx-ui-tooling = "1.6.7"
+androidx-animation = "1.6.7"
+about-libraries = "10.9.2"
 
 [libraries]
+androidx-compose-compiler = { module = "androidx.compose.compiler:compiler", version.ref = "compiler" }
 androidx-activity = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "androidx-material-icons-extended" }
 androidx-material = { module = "androidx.compose.material:material", version.ref = "androidx-material" }
@@ -33,6 +36,12 @@ accompanist-permissions = { module = "com.google.accompanist:accompanist-permiss
 accompanist-themeadapter = { module = "com.google.accompanist:accompanist-themeadapter-material3", version.ref = "accompanist" }
 accompanist-systemuicontroller = { module = "com.google.accompanist:accompanist-systemuicontroller", version.ref = "accompanist" }
 
+about-libraries = { module = "com.mikepenz:aboutlibraries-compose", version.ref = "about-libraries" }
+about-libraries-core = { module = "com.mikepenz:aboutlibraries-core", version.ref = "about-libraries" }
+
 bom = { group = "dev.chrisbanes.compose", name = "compose-bom", version.ref = "compose-bom" }
 coil = { module = "io.coil-kt:coil-compose", version = "2.4.0"}
 glide = { module = "com.github.bumptech.glide:compose", version = "1.0.0-alpha.6"}
+
+[plugins]
+about-libraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "about-libraries" }

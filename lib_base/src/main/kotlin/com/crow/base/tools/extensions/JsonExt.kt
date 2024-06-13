@@ -1,9 +1,11 @@
 package com.crow.base.tools.extensions
 
+import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.RequestBody
 import org.json.JSONObject
+import java.lang.reflect.Type
 
 /*************************
  * @Machine: RedmiBook Pro 15 Win11
@@ -91,7 +93,11 @@ fun JSONObject.toJsonRequestBody(): RequestBody {
 * @author CrowForKotlin
 * @date 2021/11/4 3:58 下午
 * */
-val baseMoshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+
+
+val baseMoshi = Moshi.Builder()
+    .add(KotlinJsonAdapterFactory())
+    .build()
 
 inline fun <reified T> toTypeEntity(value: Any?, moshi: Moshi = baseMoshi): T? {
     if (value == null) return null
@@ -103,9 +109,9 @@ inline fun <reified T> toJson(value: T & Any, moshi: Moshi = baseMoshi): String 
 }
 
 /**
- * ● Gson 扩展
+ * ⦁ Gson 扩展
  *
- * ● 2023-09-05 01:56:41 周二 上午
+ * ⦁ 2023-09-05 01:56:41 周二 上午
  */
 
 

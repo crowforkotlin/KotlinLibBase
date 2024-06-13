@@ -3,8 +3,7 @@ package com.crow.base.tools.extensions
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
-import com.crow.base.BuildConfig
-import com.crow.base.android.viewmodel.ViewStateException
+import com.crow.base.ui.viewmodel.ViewStateException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.ProducerScope
@@ -35,7 +34,7 @@ internal fun <R> ProducerScope<R>.callEnqueueFlow(call: Call<R>) {
         }
 
         override fun onFailure(call: Call<R>, t: Throwable) {
-            if (BuildConfig.DEBUG) t.stackTraceToString().logError()
+//            if (BuildConfig.DEBUG) t.stackTraceToString().error()
             if (t is UnknownHostException) { close(ViewStateException("解析地址错误！请检查您的网络！", t)) }
             close(t)
         }
@@ -55,9 +54,10 @@ internal fun <R> ProducerScope<R>.processing(response: Response<R>) {
     //HttpCode 为 200
     if (response.isSuccessful) {
         val body = response.body()
+        val code = response.code()
         // 204: 执行成功但是没有返回数据
-        if (body == null || response.code() == 204) {
-            cancel(CancellationException("HTTP status code: ${response.code()}"))
+        if (body == null || code == 204) {
+            cancel(CancellationException("HTTP status code: $code"))
         } else {
             trySendBlocking(body)
                 .onSuccess { close() }

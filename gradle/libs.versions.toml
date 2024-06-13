@@ -1,11 +1,12 @@
 [versions]
-kotlin = "1.9.10"
-network-okhttp = "5.0.0-alpha.11"
-network-retrofit = "2.9.0"
-json-moshi = "1.15.0"
+junit = "4.13.2"
+kotlin = "2.0.0"
+network-okhttp = "5.0.0-alpha.14"
+network-retrofit = "2.11.0"
+json-moshi = "1.15.1"
 
 # [ https://github.com/Kotlin/kotlinx.coroutines ]
-kotlin-coroutines-core = "1.7.3"
+kotlin-coroutines-core = "1.8.0"
 
 # [ https://github.com/Kotlin/kotlinx-datetime ]
 kotlin-datetime = "0.4.1"
@@ -17,20 +18,20 @@ logger = "2.2.0"
 loading-button = "2.3.0"
 
 # [ https://github.com/square/leakcanary ]
-leakcanary-android = "2.12"
+leakcanary-android = "2.14"
 
 # [ https://github.com/guolindev/Glance ]
 glance = "1.1.0"
 
 # [ https://github.com/LuckSiege/PictureSelector ]
-lucksiege-pictureselector = "v3.11.1"
+lucksiege-pictureselector = "v3.11.2"
 
 # [ https://github.com/ReactiveX/RxAndroid --- https://github.com/ReactiveX/RxJava ]
 rxjava3 = "3.1.8"
 rxjava3-android = "3.0.2"
 
 # [ https://insert-koin.io/ ]
-koin-android = "3.5.0"
+koin-android = "3.5.6"
 
 # [ https://github.com/airbnb/lottie-android ]
 lottie = "6.1.0"
@@ -42,9 +43,14 @@ photoview = "2.0.0"
 smartrefresh = "2.0.5"
 
 glide = "5.0.0-rc01"
+coil = "2.5.0"
+subsampling-scale-image-view = "1b19231b2f"
+kotlin-version = "2.0.0"
+buildconfig = "5.3.5"
 
 
 [libraries]
+junit = { module = "junit:junit", version.ref = "junit" }
 kotlin-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlin-coroutines-core" }
 kotlin-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlin-datetime" }
 kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
@@ -79,7 +85,6 @@ luksiege-compress = { group = "io.github.lucksiege", name = "compress", version.
 luksiege-ucrop = { group = "io.github.lucksiege", name = "ucrop", version.ref = "lucksiege-pictureselector" }
 luksiege-camerax = { group = "io.github.lucksiege", name = "camerax", version.ref = "lucksiege-pictureselector" }
 
-reactivex-rxjava3-rxkotlin = { group = "io.reactivex.rxjava3", name = "rxkotlin", version.ref = "rxjava3"}
 reactivex-rxjava3 = { group = "io.reactivex.rxjava3", name = "rxjava", version.ref = "rxjava3" }
 reactivex-rxjava3-rxandroid = { group = "io.reactivex.rxjava3", name = "rxandroid", version.ref = "rxjava3-android" }
 
@@ -101,3 +106,11 @@ glide-ksp = { group = "com.github.bumptech.glide", name = "ksp", version.ref = "
 glide-annotations = { group = "com.github.bumptech.glide", name = "annotations", version.ref = "glide" }
 glide-okhttp3-integration = { group = "com.github.bumptech.glide", name = "okhttp3-integration", version.ref = "glide" }
 
+coil = { module = "io.coil-kt:coil", version.ref = "coil"}
+
+crow-component-AttrTextLayout = { module = "com.kotlincrow.android.component:AttrTextLayout", version = "1.9" }
+
+subsampling-scale-image-view = { module = "com.github.KotatsuApp:subsampling-scale-image-view", version.ref = "subsampling-scale-image-view" }
+[plugins]
+jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin-version" }
+buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }

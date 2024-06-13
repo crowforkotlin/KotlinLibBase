@@ -1,6 +1,7 @@
 package com.crow.base.tools.coroutine
 
 import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
@@ -57,6 +58,15 @@ object FlowBus {
         inline fun register(lifecycleOwner: LifecycleOwner, crossinline doOnAction: (value: T) -> Unit) {
             lifecycleOwner.lifecycle.addObserver(this)
             lifecycleOwner.lifecycleScope.launch {
+                events.collect {
+                    try { doOnAction(it) } catch (e: Exception) { e.printStackTrace() }
+                }
+            }
+        }
+
+        // 主线程接收数据
+        inline fun register(scope: CoroutineScope, crossinline doOnAction: (value: T) -> Unit) {
+            scope.launch {
                 events.collect {
                     try { doOnAction(it) } catch (e: Exception) { e.printStackTrace() }
                 }

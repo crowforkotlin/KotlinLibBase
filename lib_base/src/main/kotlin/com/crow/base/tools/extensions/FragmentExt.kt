@@ -85,7 +85,7 @@ fun Fragment.navigateUp() = findNavController().navigateUp()
 */
 
 fun FragmentTransaction.setFadeAnimation() =
-    setCustomAnimations(anim.fade_in, anim.fade_out, anim.fade_in, anim.fade_out)
+    setCustomAnimations(R.anim.base_anim_fade_in, 0, R.anim.base_anim_fade_in, 0)
 
 fun FragmentTransaction.setSlideAnimation() = setCustomAnimations(
     anim.slide_in_left,
@@ -118,46 +118,63 @@ inline fun FragmentManager.show(
 ) = transaction(beginTransaction()).show(fragment).commit()
 
 
-inline fun<reified T: Fragment> FragmentManager.navigateByAddWithBackStack(
+inline fun<reified T: Fragment> FragmentManager.addFragmentAndHide(
     @IdRes id: Int,
+    hideTarget: Fragment,
     bundle: Bundle? = null,
-    backStackName: String? = null,
     tag: String? = null,
+    backStackName: String? = null,
     crossinline transaction: (FragmentTransaction) -> FragmentTransaction = { it.setFadeAnimation() },
 ) {
     transaction(beginTransaction())
         .addToBackStack(backStackName)
         .add(id, T::class.java, bundle, tag)
-        .commit()
-}
-
-inline fun<reified T: Fragment> FragmentManager.navigateToWithBackStack(
-    @IdRes id: Int,
-    hideTarget: Fragment,
-    bundle: Bundle? = null,
-    tag: String? = null,
-    backStackName: String? = null,
-    crossinline transaction: (FragmentTransaction) -> FragmentTransaction = { it.setCenterAnimWithFadeOut() },
-) {
-    transaction(beginTransaction())
-        .addToBackStack(backStackName)
-        .add(id, T::class.java, bundle, tag)
         .hide(hideTarget)
         .commit()
 }
 
-inline fun FragmentManager.navigateToWithBackStack(
+inline fun FragmentManager.addFragmentAndHide(
     @IdRes id: Int,
     hideTarget: Fragment,
     addedTarget: Fragment,
     tag: String? = null,
     backStackName: String? = null,
-    crossinline transaction: (FragmentTransaction) -> FragmentTransaction = { it.setCenterAnimWithFadeOut() },
+    crossinline transaction: (FragmentTransaction) -> FragmentTransaction = { it.setFadeAnimation() },
 ) {
     transaction(beginTransaction())
         .addToBackStack(backStackName)
         .add(id, addedTarget, tag)
         .hide(hideTarget)
+        .commit()
+}
+
+inline fun<reified T: Fragment> FragmentManager.addFragmentAndRemove(
+    @IdRes id: Int,
+    removeTarget: Fragment,
+    bundle: Bundle? = null,
+    tag: String? = null,
+    backStackName: String? = null,
+    crossinline transaction: (FragmentTransaction) -> FragmentTransaction = { it.setFadeAnimation() },
+) {
+    transaction(beginTransaction())
+        .addToBackStack(backStackName)
+        .add(id, T::class.java, bundle, tag)
+        .remove(removeTarget)
+        .commit()
+}
+
+inline fun FragmentManager.addFragmentAndRemove(
+    @IdRes id: Int,
+    removeTarget: Fragment,
+    addedTarget: Fragment,
+    tag: String? = null,
+    backStackName: String? = null,
+    crossinline transaction: (FragmentTransaction) -> FragmentTransaction = { it.setFadeAnimation() },
+) {
+    transaction(beginTransaction())
+        .addToBackStack(backStackName)
+        .add(id, addedTarget, tag)
+        .remove(removeTarget)
         .commit()
 }
 
@@ -169,10 +186,12 @@ inline fun FragmentManager.navigate(
 ) {
     transaction(beginTransaction())
         .replace(id, fragment, tag)
+        .addToBackStack(tag)
         .commit()
 }
 
-inline fun<reified T: Fragment> FragmentManager.navigateByAdd(
+
+inline fun<reified T: Fragment> FragmentManager.addFragment(
     @IdRes id: Int,
     bundle: Bundle? = null,
     tag: String? = null,
@@ -183,7 +202,7 @@ inline fun<reified T: Fragment> FragmentManager.navigateByAdd(
         .commit()
 }
 
-inline fun FragmentManager.navigateByAdd(
+inline fun FragmentManager.addFragment(
     @IdRes id: Int,
     fragment: Fragment,
     crossinline transaction: (FragmentTransaction) -> FragmentTransaction = { it.setFadeAnimation() },
@@ -192,9 +211,6 @@ inline fun FragmentManager.navigateByAdd(
         .add(id, fragment)
         .commit()
 }
-
-
-
 
 fun FragmentManager.popSyncWithClear(vararg backStackName: String?, flags: Int = FragmentManager.POP_BACK_STACK_INCLUSIVE) {
     backStackName.forEach {
